@@ -1,0 +1,306 @@
+{
+  "project": "rag",
+  "archaeologist_timestamp": "2026-09-22T18:15:00-03:00",
+  "doc_level": "essencial",
+  "modules_analyzed": [
+    {
+      "name": "config",
+      "path": "src/hag_rag/config.py",
+      "description": "Configuração centralizada Pydantic Settings com YAML, env vars e API key resolution",
+      "classes": [
+        {
+          "name": "EmbeddingConfig",
+          "type": "settings",
+          "fields": [
+            {"name": "provider", "type": "Literal[openai,ollama,huggingface]", "default": "openai", "required": true},
+            {"name": "model", "type": "str", "default": "text-embedding-3-small", "required": true},
+            {"name": "dimensions", "type": "int", "default": 1536, "required": true, "validation": "> 0"},
+            {"name": "batch_size", "type": "int", "default": 100, "required": true},
+            {"name": "api_key_env", "type": "str", "default": "OPENAI_API_KEY", "required": true},
+            {"name": "base_url", "type": "Optional[str]", "default": "None", "required": false}
+          ],
+          "validators": ["validate_dimensions"],
+          "env_prefix": "EMBEDDING_",
+          "confidence": "CONFIRMADO"
+        },
+        {
+          "name": "LLMConfig",
+          "type": "settings",
+          "fields": [
+            {"name": "provider", "type": "Literal[openai,ollama,anthropic]", "default": "openai", "required": true},
+            {"name": "model", "type": "str", "default": "gpt-4o-mini", "required": true},
+            {"name": "temperature", "type": "float", "default": 0.1, "required": true, "validation": "[0, 2]"},
+            {"name": "max_tokens", "type": "int", "default": 2048, "required": true},
+            {"name": "timeout", "type": "int", "default": 30, "required": true},
+            {"name": "api_key_env", "type": "str", "default": "OPENAI_API_KEY", "required": true},
+            {"name": "base_url", "type": "Optional[str]", "default": "None", "required": false}
+          ],
+          "validators": ["validate_temperature"],
+          "env_prefix": "LLM_",
+          "confidence": "CONFIRMADO"
+        },
+        {
+          "name": "ChunkingConfig",
+          "type": "settings",
+          "fields": [
+            {"name": "chunk_size", "type": "int", "default": 512, "required": true},
+            {"name": "chunk_overlap", "type": "int", "default": 50, "required": true, "validation": "< chunk_size"},
+            {"name": "chunk_unit", "type": "Literal[chars,tokens]", "default": "tokens", "required": true},
+            {"name": "min_chunk_size", "type": "int", "default": 50, "required": true}
+          ],
+          "validators": ["validate_overlap"],
+          "env_prefix": "CHUNKING_",
+          "confidence": "CONFIRMADO"
+        },
+        {
+          "name": "VectorStoreConfig",
+          "type": "settings",
+          "fields": [
+            {"name": "type", "type": "Literal[sqlite_vec]", "default": "sqlite_vec", "required": true},
+            {"name": "path", "type": "str", "default": "./data/hag_rag.db", "required": true},
+            {"name": "embedding_dimensions", "type": "int", "default": 1536, "required": true}
+          ],
+          "validators": [],
+          "env_prefix": "VECTOR_STORE_",
+          "confidence": "CONFIRMADO"
+        },
+        {
+          "name": "LoggingConfig",
+          "type": "settings",
+          "fields": [
+            {"name": "level", "type": "Literal[DEBUG,INFO,WARNING,ERROR]", "default": "INFO", "required": true},
+            {"name": "format", "type": "Literal[json,text]", "default": "json", "required": true},
+            {"name": "output", "type": "str", "default": "stdout", "required": true},
+            {"name": "include_request_id", "type": "bool", "default": "True", "required": true}
+          ],
+          "validators": [],
+          "env_prefix": "LOGGING_",
+          "confidence": "CONFIRMADO"
+        },
+        {
+          "name": "QueryLogConfig",
+          "type": "settings",
+          "fields": [
+            {"name": "enabled", "type": "bool", "default": "False", "required": true},
+            {"name": "path", "type": "str", "default": "./data/query_log.db", "required": true}
+          ],
+          "validators": [],
+          "env_prefix": "QUERY_LOG_",
+          "confidence": "CONFIRMADO"
+        },
+        {
+          "name": "AppConfig",
+          "type": "settings_root",
+          "fields": [
+            {"name": "embedding", "type": "EmbeddingConfig", "required": true, "default_factory": true},
+            {"name": "llm", "type": "LLMConfig", "required": true, "default_factory": true},
+            {"name": "chunking", "type": "ChunkingConfig", "required": true, "default_factory": true},
+            {"name": "vector_store", "type": "VectorStoreConfig", "required": true, "default_factory": true},
+            {"name": "logging", "type": "LoggingConfig", "required": true, "default_factory": true},
+            {"name": "query_log", "type": "QueryLogConfig", "required": true, "default_factory": true}
+          ],
+          "methods": [
+            {"name": "from_yaml", "signature": "(cls, path: str|Path) -> AppConfig", "description": "Carrega config de YAML"},
+            {"name": "resolve_api_keys", "signature": "() -> AppConfig", "description": "Resolve env vars para api_key"}
+          ],
+          "model_config": {
+            "env_file": ".env",
+            "env_file_encoding": "utf-8",
+            "env_nested_delimiter": "__",
+            "extra": "ignore"
+          },
+          "confidence": "CONFIRMADO"
+        }
+      ],
+      "enums": [
+        {"name": "EmbeddingProvider", "values": ["openai", "ollama", "huggingface"], "used_in": "EmbeddingConfig.provider"},
+        {"name": "LLMProvider", "values": ["openai", "ollama", "anthropic"], "used_in": "LLMConfig.provider"},
+        {"name": "ChunkUnit", "values": ["chars", "tokens"], "used_in": "ChunkingConfig.chunk_unit"},
+        {"name": "VectorStoreType", "values": ["sqlite_vec"], "used_in": "VectorStoreConfig.type"},
+        {"name": "LogLevel", "values": ["DEBUG", "INFO", "WARNING", "ERROR"], "used_in": "LoggingConfig.level"},
+        {"name": "LogFormat", "values": ["json", "text"], "used_in": "LoggingConfig.format"}
+      ],
+      "key_algorithms": [
+        {"name": "AppConfig.from_yaml", "description": "Carrega YAML via safe_load e instancia AppConfig validado"},
+        {"name": "AppConfig.resolve_api_keys", "description": "Itera embedding/llm, lê api_key_env do os.environ, injeta api_key, revalida"}
+      ],
+      "validation_rules": [
+        {"target": "EmbeddingConfig.dimensions", "rule": "> 0", "validator": "validate_dimensions"},
+        {"target": "LLMConfig.temperature", "rule": "[0, 2]", "validator": "validate_temperature"},
+        {"target": "ChunkingConfig.chunk_overlap", "rule": "< chunk_size", "validator": "validate_overlap"}
+      ],
+      "integration_points": [
+        "YAML config.example.yaml",
+        ".env file via env_file",
+        "Nested env vars via __ delimiter (ex: EMBEDDING__MODEL)",
+        "CLI usa AppConfig.resolve_api_keys() antes de criar pipeline"
+      ],
+      "gaps": [
+        {"severity": "INFERIDO", "item": "resolve_api_keys não valida existência da env var; retorna None silencioso"},
+        {"severity": "INFERIDO", "item": "base_url não validado formato URL"},
+        {"severity": "LACUNA", "item": "Falta validação cross-config: embedding_dimensions == dimensions do provider"}
+      ]
+    },
+    {
+      "name": "domain",
+      "path": "src/hag_rag/domain/",
+      "description": "Modelos de domínio Pydantic + hierarquia de exceções",
+      "files": ["models.py", "exceptions.py"],
+      "classes": [
+        {
+          "name": "ChunkUnit",
+          "type": "enum",
+          "values": ["chars", "tokens"],
+          "used_in": ["ChunkingConfig.chunk_unit", "IngestConfig.chunk_unit"],
+          "confidence": "CONFIRMADO"
+        },
+        {
+          "name": "Document",
+          "type": "model",
+          "fields": [
+            {"name": "id", "type": "UUID", "default_factory": "uuid4", "required": true},
+            {"name": "path", "type": "str", "required": true},
+            {"name": "filename", "type": "str", "required": true},
+            {"name": "content_hash", "type": "str", "required": true, "validation": "SHA256 hex 64 chars"},
+            {"name": "page_count", "type": "int", "required": true},
+            {"name": "metadata", "type": "Dict[str,Any]", "default_factory": "dict", "required": false},
+            {"name": "created_at", "type": "datetime", "default_factory": "utcnow", "required": true}
+          ],
+          "validators": ["validate_hash (lowercase, 64 chars)"],
+          "confidence": "CONFIRMADO"
+        },
+        {
+          "name": "Chunk",
+          "type": "model",
+          "fields": [
+            {"name": "id", "type": "UUID", "default_factory": "uuid4", "required": true},
+            {"name": "document_id", "type": "UUID", "required": true},
+            {"name": "content", "type": "str", "required": true},
+            {"name": "chunk_index", "type": "int", "required": true, "validation": ">= 0"},
+            {"name": "page_number", "type": "Optional[int]", "required": false},
+            {"name": "start_char", "type": "int", "required": true},
+            {"name": "end_char", "type": "int", "required": true},
+            {"name": "token_count", "type": "Optional[int]", "required": false},
+            {"name": "embedding", "type": "Optional[List[float]]", "required": false},
+            {"name": "metadata", "type": "Dict[str,Any]", "default_factory": "dict", "required": false}
+          ],
+          "validators": ["validate_index (>= 0)"],
+          "confidence": "CONFIRMADO"
+        },
+        {
+          "name": "QueryResult",
+          "type": "model",
+          "fields": [
+            {"name": "answer", "type": "str", "required": true},
+            {"name": "citations", "type": "List[Dict[str,Any]]", "default_factory": "list", "required": false},
+            {"name": "chunks_used", "type": "List[Chunk]", "default_factory": "list", "required": false},
+            {"name": "scores", "type": "List[float]", "default_factory": "list", "required": false},
+            {"name": "latency_ms", "type": "Dict[str,float]", "default_factory": "dict", "required": false},
+            {"name": "metadata", "type": "Dict[str,Any]", "default_factory": "dict", "required": false}
+          ],
+          "validators": [],
+          "confidence": "CONFIRMADO"
+        },
+        {
+          "name": "IngestConfig",
+          "type": "model",
+          "fields": [
+            {"name": "chunk_size", "type": "int", "default": 512, "required": false},
+            {"name": "chunk_overlap", "type": "int", "default": 50, "required": false},
+            {"name": "chunk_unit", "type": "ChunkUnit", "default": "TOKENS", "required": false},
+            {"name": "parser", "type": "Literal[pdfplumber,pypdf]", "default": "pdfplumber", "required": false},
+            {"name": "force_reingest", "type": "bool", "default": "False", "required": false},
+            {"name": "recursive", "type": "bool", "default": "False", "required": false}
+          ],
+          "confidence": "CONFIRMADO"
+        },
+        {
+          "name": "QueryConfig",
+          "type": "model",
+          "fields": [
+            {"name": "top_k", "type": "int", "default": 5, "required": false},
+            {"name": "threshold", "type": "float", "default": 0.7, "required": false},
+            {"name": "llm_provider", "type": "Optional[str]", "required": false},
+            {"name": "llm_model", "type": "Optional[str]", "required": false},
+            {"name": "temperature", "type": "Optional[float]", "required": false},
+            {"name": "no_synthesis", "type": "bool", "default": "False", "required": false},
+            {"name": "format", "type": "Literal[text,json]", "default": "text", "required": false}
+          ],
+          "confidence": "CONFIRMADO"
+        }
+      ],
+      "exceptions": [
+        {"name": "HAGRAGException", "base": "Exception", "fields": ["message:str", "details:dict"], "description": "Base com details dict"},
+        {"name": "InvalidDocumentException", "base": "HAGRAGException", "description": "PDF inválido/corrompido"},
+        {"name": "EmbeddingGenerationException", "base": "HAGRAGException", "description": "Falha geração embeddings"},
+        {"name": "VectorStoreException", "base": "HAGRAGException", "description": "Erro vector store"},
+        {"name": "SynthesisException", "base": "HAGRAGException", "description": "Erro síntese resposta"},
+        {"name": "ConfigurationException", "base": "HAGRAGException", "description": "Config inválida"},
+        {"name": "ProviderNotAvailableException", "base": "HAGRAGException", "description": "Provedor indisponível"}
+      ],
+      "confidence": "CONFIRMADO"
+    },
+    {
+      "name": "utils.text",
+      "path": "src/hag_rag/utils/text.py",
+      "description": "Utilitários: hash SHA256, sanitização texto, contagem chars/tokens, chunking tokens/chars, UUID, truncate",
+      "functions": [
+        {"name": "sha256_hash", "signature": "(content: bytes) -> str", "algorithm": "hashlib.sha256().hexdigest()", "confidence": "CONFIRMADO"},
+        {"name": "sha256_file", "signature": "(path: str) -> str", "algorithm": "stream 8KB chunks", "confidence": "CONFIRMADO"},
+        {"name": "sanitize_text", "signature": "(text: str) -> str", "algorithm": "regex remove control chars + NFKC normalize + hyphen fix + collapse newlines + strip lines", "confidence": "CONFIRMADO"},
+        {"name": "count_chars", "signature": "(text: str) -> int", "algorithm": "len(text)", "confidence": "CONFIRMADO"},
+        {"name": "count_tokens", "signature": "(text: str, model='cl100k_base') -> int", "algorithm": "tiktoken.get_encoding().encode()", "confidence": "CONFIRMADO"},
+        {"name": "chunk_by_tokens", "signature": "(text, chunk_size, chunk_overlap, model) -> List[str]", "algorithm": "tiktoken encode -> sliding window com overlap -> decode", "confidence": "CONFIRMADO"},
+        {"name": "chunk_by_chars", "signature": "(text, chunk_size, chunk_overlap) -> List[str]", "algorithm": "slicing string com overlap", "confidence": "CONFIRMADO"},
+        {"name": "generate_uuid", "signature": "() -> str", "algorithm": "uuid.uuid4()", "confidence": "CONFIRMADO"},
+        {"name": "truncate_text", "signature": "(text, max_length, suffix='...') -> str", "algorithm": "preserva palavras completas", "confidence": "CONFIRMADO"}
+      ],
+      "key_algorithms": [
+        {"name": "sanitize_text", "description": "Remove control chars (exceto \\n\\t), NFKC, fix hyphen-\\n, collapse \\n{3,}, strip lines"},
+        {"name": "chunk_by_tokens", "description": "tiktoken encode -> janela deslizante size/overlap -> decode; O(n) tokens"}
+      ],
+      "confidence": "CONFIRMADO"
+    },
+    {
+      "name": "logging",
+      "path": "src/hag_rag/logging.py",
+      "description": "Logging JSON estruturado com request_id via contextvar",
+      "classes": [
+        {
+          "name": "RequestIdFilter",
+          "type": "logging.Filter",
+          "description": "Injeta request_id (contextvar) no log record",
+          "confidence": "CONFIRMADO"
+        },
+        {
+          "name": "CustomJsonFormatter",
+          "type": "jsonlogger.JsonFormatter",
+          "description": "Adiciona timestamp, level, logger, request_id",
+          "confidence": "CONFIRMADO"
+        }
+      ],
+      "functions": [
+        {"name": "setup_logging", "signature": "(level, format, output, include_request_id) -> Logger", "description": "Configura logger 'hag_rag' com handler+formatter+filter"},
+        {"name": "get_logger", "signature": "(name='hag_rag') -> Logger", "description": "Retorna logger configurado"},
+        {"name": "set_request_id", "signature": "(request_id=None) -> str", "description": "Define request_id no contextvar (gera UUID curto se None)"},
+        {"name": "clear_request_id", "signature": "() -> None", "description": "Limpa request_id do contextvar"}
+      ],
+      "context_managers": [
+        {"name": "LogContext", "description": "Context manager para request_id (gera se None, restaura anterior no exit)"}
+      ],
+      "key_mechanisms": [
+        {"name": "request_id_var", "type": "ContextVar[Optional[str]]", "description": "Isolamento por task asyncio"},
+        {"name": "JSON output", "format": '{"timestamp":"...","level":"INFO","logger":"hag_rag.module","request_id":"abc123","message":"..."}' }
+      ],
+      "confidence": "CONFIRMADO"
+    }
+  ],
+  "modules_pending": [
+    "ingestion",
+    "embeddings",
+    "vector_store",
+    "synthesis",
+    "pipeline",
+    "cli"
+  ]
+}

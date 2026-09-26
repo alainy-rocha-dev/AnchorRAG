@@ -1,0 +1,1 @@
+"""Modelos de domínio e exceções."""

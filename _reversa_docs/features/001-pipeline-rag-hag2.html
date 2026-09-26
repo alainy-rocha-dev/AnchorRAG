@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spec 001: Pipeline RAG — AnchorRAG Docs</title>
+  <meta name="reversa-category" content="diagram">
+  <meta name="reversa-producer-agent" content="reversa-docs-storyteller">
+  <meta name="reversa-template" content="feature">
+  <style>
+    :root {
+      --bg: #0d1117;
+      --card-bg: #161b22;
+      --border: #30363d;
+      --text: #c9d1d9;
+      --text-heading: #f0f6fc;
+      --accent: #58a6ff;
+      --accent-green: #3fb950;
+    }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    header {
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.25rem;
+      color: var(--text-heading);
+    }
+    header nav.reversa-doc-nav {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    header nav a {
+      color: var(--text);
+      text-decoration: none;
+      font-size: 0.85rem;
+      padding: 6px 12px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      line-height: 1;
+      height: 34px;
+      box-sizing: border-box;
+      transition: all 0.2s ease;
+    }
+    header nav a:hover, header nav a[aria-current="page"] {
+      background: rgba(88, 166, 255, 0.15);
+      color: var(--accent);
+    }
+    header nav a.nav-deck-btn {
+      background: linear-gradient(135deg, rgba(168, 85, 247, 0.25) 0%, rgba(88, 166, 255, 0.25) 100%);
+      border: 1px solid rgba(168, 85, 247, 0.5);
+      color: #d8b4fe;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 20px;
+      transition: all 0.25s ease;
+      box-shadow: 0 0 10px rgba(168, 85, 247, 0.2);
+      display: inline-flex;
+      align-items: center;
+      line-height: 1;
+      height: 34px;
+      box-sizing: border-box;
+    }
+    header nav a.nav-deck-btn:hover, header nav a.nav-deck-btn[aria-current="page"] {
+      background: linear-gradient(135deg, #bc8cff 0%, #58a6ff 100%);
+      color: #ffffff;
+      font-weight: 700;
+      box-shadow: 0 0 16px rgba(188, 140, 255, 0.6);
+      border-color: transparent;
+    }
+    .container {
+      max-width: 900px;
+      margin: 32px auto;
+      padding: 0 24px;
+    }
+    .feature-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    .feature-card h2 {
+      margin-top: 0;
+      color: var(--accent);
+    }
+    code {
+      background: #21262d;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+      color: #f0f6fc;
+    }
+    pre {
+      background: #161b22;
+      border: 1px solid var(--border);
+      padding: 16px;
+      border-radius: 6px;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>⚙️ Specification: Feature 001 - Pipeline RAG</h1>
+    <nav class="reversa-doc-nav">
+      <!-- NAV_LINKS -->
+      <a href="../index.html">Visão geral</a>
+      <a href="../arquitetura.html">Arquitetura 3D</a>
+      <a href="../modulos.html">Módulos 2D</a>
+      <a href="../metricas.html">Métricas</a>
+      <a href="../glossario.html">Glossário</a>
+      <a href="../deck.html" class="nav-deck-btn">🎬 Apresentação</a>
+    </nav>
+  </header>
+
+  <div class="container">
+    <div class="feature-card">
+      <h2>📌 Visão Geral da Feature</h2>
+      <p>
+        Implementação completa do pipeline RAG, incluindo os 3 pilares fundamentais: Ingestão de Documentos (PDF/Chunking), Armazenamento Vetorial (SQLite-vec) e Síntese grounded com citações rastreáveis.
+      </p>
+    </div>
+
+    <div class="feature-card">
+      <h2>🛠️ Comandos da CLI (`anchor-rag`)</h2>
+      <pre><code># Ingestão recursiva de documentos PDF
+anchor-rag ingest --path ./docs/ --chunk-size 500 --overlap 50
+
+# Consulta RAG com ancoragem estrita e citações
+anchor-rag query "Quais são as políticas de segurança do sistema?" --top-k 5
+
+# Execução do benchmark quantitativo
+anchor-rag eval --output-format json</code></pre>
+    </div>
+
+    <div class="feature-card">
+      <h2>✅ Status de Implementação</h2>
+      <p style="color: var(--accent-green); font-weight: bold;">
+        🟢 46 de 46 ações executadas (100% Concluído)
+      </p>
+      <ul>
+        <li><code>T001 - T007</code>: Estrutura, modelos de domínio e sanitização NFKC</li>
+        <li><code>T008 - T014</code>: Fixtures de teste e contratos de interfaces ABC</li>
+        <li><code>T015 - T036</code>: Parsers, Chunker, SQLite-vec Store e Synthesizer</li>
+        <li><code>T037 - T046</code>: Comandos CLI Typer, benchmark eval e CI/CD GitHub Actions</li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Executive Presentation Deck — Pipeline RAG</title>
+  <meta name="reversa-category" content="diagram">
+  <meta name="reversa-producer-agent" content="reversa-docs-storyteller">
+  <meta name="reversa-template" content="deck">
+  <style>
+    :root {
+      --bg: #0d1117;
+      --card-bg: #161b22;
+      --border: #30363d;
+      --text: #c9d1d9;
+      --text-heading: #f0f6fc;
+      --accent: #58a6ff;
+      --accent-green: #3fb950;
+      --accent-purple: #bc8cff;
+    }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+    header {
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.2rem;
+      color: var(--text-heading);
+    }
+    header nav.reversa-doc-nav {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    header nav a {
+      color: var(--text);
+      text-decoration: none;
+      font-size: 0.85rem;
+      padding: 6px 12px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      line-height: 1;
+      height: 34px;
+      box-sizing: border-box;
+      transition: all 0.2s ease;
+    }
+    header nav a:hover, header nav a[aria-current="page"] {
+      background: rgba(88, 166, 255, 0.15);
+      color: var(--accent);
+    }
+    header nav a.nav-deck-btn {
+      background: linear-gradient(135deg, rgba(168, 85, 247, 0.25) 0%, rgba(88, 166, 255, 0.25) 100%);
+      border: 1px solid rgba(168, 85, 247, 0.5);
+      color: #d8b4fe;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 20px;
+      transition: all 0.25s ease;
+      box-shadow: 0 0 10px rgba(168, 85, 247, 0.2);
+      display: inline-flex;
+      align-items: center;
+      line-height: 1;
+      height: 34px;
+      box-sizing: border-box;
+    }
+    header nav a.nav-deck-btn:hover, header nav a.nav-deck-btn[aria-current="page"] {
+      background: linear-gradient(135deg, #bc8cff 0%, #58a6ff 100%);
+      color: #ffffff;
+      font-weight: 700;
+      box-shadow: 0 0 16px rgba(188, 140, 255, 0.6);
+      border-color: transparent;
+    }
+    .deck-container {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      position: relative;
+    }
+    .slide {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      width: 100%;
+      max-width: 900px;
+      height: 520px;
+      padding: 40px;
+      box-sizing: border-box;
+      display: none;
+      flex-direction: column;
+      justify-content: space-between;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+    .slide.active { display: flex; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .slide-header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 16px;
+    }
+    .slide-header h2 {
+      margin: 0;
+      font-size: 1.8rem;
+      color: var(--text-heading);
+    }
+    .slide-header p {
+      margin: 4px 0 0 0;
+      color: var(--accent);
+      font-size: 0.95rem;
+    }
+    .slide-body {
+      flex: 1;
+      padding: 24px 0;
+      font-size: 1.05rem;
+      line-height: 1.6;
+    }
+    .slide-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid var(--border);
+      padding-top: 16px;
+      font-size: 0.85rem;
+      color: #8b949e;
+    }
+    .deck-controls {
+      display: flex;
+      gap: 12px;
+    }
+    .btn {
+      background: #21262d;
+      border: 1px solid var(--border);
+      color: var(--text-heading);
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .btn:hover {
+      background: var(--border);
+    }
+    .hero-title {
+      font-size: 2.8rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #58a6ff 0%, #bc8cff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 16px;
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .highlight-box {
+      background: #21262d;
+      border: 1px solid var(--border);
+      padding: 16px;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🎬 Presentation Deck (Portfolio Showcase)</h1>
+    <nav class="reversa-doc-nav">
+      <!-- NAV_LINKS -->
+      <a href="index.html">Visão geral</a>
+      <a href="arquitetura.html">Arquitetura 3D</a>
+      <a href="modulos.html">Módulos 2D</a>
+      <a href="metricas.html">Métricas</a>
+      <a href="glossario.html">Glossário</a>
+      <a href="deck.html" class="nav-deck-btn" aria-current="page">🎬 Apresentação</a>
+    </nav>
+  </header>
+
+  <div class="deck-container">
+    <!-- Slide 1: Capa -->
+    <div class="slide active" id="slide-1">
+      <div class="slide-body" style="display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
+        <div class="hero-title">Pipeline RAG</div>
+        <p style="font-size: 1.2rem; color: #8b949e; max-width: 650px;">
+          Arquitetura RAG End-to-End de Alta Performance com Ancoragem Estrita, Busca Vetorial Nativa e Benchmark Quantitativo.
+        </p>
+        <span style="background: rgba(63, 185, 80, 0.15); color: var(--accent-green); padding: 6px 16px; border-radius: 20px; margin-top: 24px; font-weight: 600;">
+          Engenharia de Software & IA Aplicada
+        </span>
+      </div>
+      <div class="slide-footer">
+        <span>Slide 1 de 5</span>
+        <div class="deck-controls">
+          <button class="btn" onclick="prevSlide()">← Anterior</button>
+          <button class="btn" onclick="nextSlide()">Próximo →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 2: Problema & Solução -->
+    <div class="slide" id="slide-2">
+      <div class="slide-header">
+        <h2>💡 O Problema & A Solução</h2>
+        <p>Por que construir um pipeline RAG customizado em Python?</p>
+      </div>
+      <div class="slide-body grid-2">
+        <div class="highlight-box">
+          <h3 style="color: #f85149; margin-top: 0;">❌ Desafios de LLMs Puros</h3>
+          <ul>
+            <li>Alucinação e falta de ancoragem factual</li>
+            <li>Incapacidade de consultar documentos privados/PDFs recentes</li>
+            <li>Latência e dependência de infraestruturas vetoriais pesadas</li>
+          </ul>
+        </div>
+        <div class="highlight-box">
+          <h3 style="color: var(--accent-green); margin-top: 0;">✅ Solução Pipeline RAG</h3>
+          <ul>
+            <li>Busca Vetorial ultra-rápida via <strong>SQLite-vec</strong> (local)</li>
+            <li>Prompting estrito com citações rastreáveis <code>[N]</code></li>
+            <li>Modularidade multicloud: OpenAI, Ollama e HuggingFace</li>
+          </ul>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>Slide 2 de 5</span>
+        <div class="deck-controls">
+          <button class="btn" onclick="prevSlide()">← Anterior</button>
+          <button class="btn" onclick="nextSlide()">Próximo →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 3: Arquitetura Técnica -->
+    <div class="slide" id="slide-3">
+      <div class="slide-header">
+        <h2>🏗️ Arquitetura & Fluxo de Ingestão</h2>
+        <p>De PDFs não estruturados ao banco vetorial</p>
+      </div>
+      <div class="slide-body" style="font-size: 0.95rem;">
+        <div class="highlight-box" style="margin-bottom: 12px;">
+          <strong>1. Extração & Ingestão:</strong> <code>PdfPlumberParser</code> / <code>PyPDFParser</code> com preservação de metadados e número de página.
+        </div>
+        <div class="highlight-box" style="margin-bottom: 12px;">
+          <strong>2. Chunking Adaptativo:</strong> Sliding window com contagem exata de tokens via <code>tiktoken</code> e sanitização NFKC.
+        </div>
+        <div class="highlight-box">
+          <strong>3. Embeddings & Armazenamento:</strong> Vetores dense armazenados na virtual table <code>vec0</code> do <strong>sqlite-vec</strong> com cálculo cosseno via NumPy.
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>Slide 3 de 5</span>
+        <div class="deck-controls">
+          <button class="btn" onclick="prevSlide()">← Anterior</button>
+          <button class="btn" onclick="nextSlide()">Próximo →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 4: Boas Práticas & Engenharia -->
+    <div class="slide" id="slide-4">
+      <div class="slide-header">
+        <h2>⚡ Diferenciais de Engenharia de Software</h2>
+        <p>Padrões de produção que destacam o projeto</p>
+      </div>
+      <div class="slide-body grid-2">
+        <div class="highlight-box">
+          <h4>🧪 Testes & Cobertura</h4>
+          <p style="font-size: 0.85rem;">Testes unitários e de integração com pytest, fixtures sintéticas e mocks de provedores de IA.</p>
+        </div>
+        <div class="highlight-box">
+          <h4>📊 Benchmark CLI</h4>
+          <p style="font-size: 0.85rem;">Comando <code>anchor-rag eval</code> para calcular Recall@k, MRR, latência P95 e taxa de alucinação.</p>
+        </div>
+        <div class="highlight-box">
+          <h4>🔒 Tipagem & Linting</h4>
+          <p style="font-size: 0.85rem;">mypy strict mode + ruff + Pydantic v2 para garantia total de contratos.</p>
+        </div>
+        <div class="highlight-box">
+          <h4>🤖 CI/CD Automatizado</h4>
+          <p style="font-size: 0.85rem;">GitHub Actions validando compilação, tipos e testes a cada commit.</p>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>Slide 4 de 5</span>
+        <div class="deck-controls">
+          <button class="btn" onclick="prevSlide()">← Anterior</button>
+          <button class="btn" onclick="nextSlide()">Próximo →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 5: Conclusão -->
+    <div class="slide" id="slide-5">
+      <div class="slide-header">
+        <h2>🎯 Conclusão & Impacto</h2>
+        <p>Pronto para produção e fácil de estender</p>
+      </div>
+      <div class="slide-body" style="text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+        <h3 style="color: var(--accent-green);">Engenharia Robusta • Arquitetura Limpa • Documentação 3D</h3>
+        <p style="max-width: 600px; color: #8b949e;">
+          O Pipeline RAG demonstra capacidade completa de design de software, escolha de tecnologias adequadas e implementação prática com padrões da indústria.
+        </p>
+        <a href="arquitetura.html" style="background: var(--accent); color: #fff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold; margin-top: 20px;">
+          Ver Arquitetura 3D Interativa
+        </a>
+      </div>
+      <div class="slide-footer">
+        <span>Slide 5 de 5</span>
+        <div class="deck-controls">
+          <button class="btn" onclick="prevSlide()">← Anterior</button>
+          <button class="btn" onclick="nextSlide()" disabled>Fim</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="assets/js/data.js"></script>
+  <script>
+    let currentSlide = 1;
+    const totalSlides = 5;
+
+    function showSlide(n) {
+      document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+      const active = document.getElementById(`slide-${n}`);
+      if (active) active.classList.add('active');
+    }
+
+    function nextSlide() {
+      if (currentSlide < totalSlides) {
+        currentSlide++;
+        showSlide(currentSlide);
+      }
+    }
+
+    function prevSlide() {
+      if (currentSlide > 1) {
+        currentSlide--;
+        showSlide(currentSlide);
+      }
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight') nextSlide();
+      if (e.key === 'ArrowLeft') prevSlide();
+    });
+  </script>
+</body>
+</html>

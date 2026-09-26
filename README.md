@@ -1,0 +1,225 @@
+# AnchorRAG - Pipeline RAG para Projeto HAG 2
+
+Pipeline completo de Retrieval-Augmented Generation (RAG) com ingestão de PDFs, chunking inteligente, embeddings multi-provedor, busca vetorial com sqlite-vec e síntese com ancoragem estrita e citações.
+
+## 🚀 Quickstart
+
+```bash
+# Instalação
+pip install -e ".[dev]"
+
+# Copia configuração de exemplo
+cp config.example.yaml config.yaml
+# Edite config.yaml com suas API keys
+
+# Ingestão de documentos
+anchor-rag ingest docs/*.pdf --recursive
+
+# Query
+anchor-rag query "Qual é o tema principal dos documentos?"
+
+# Avaliação
+anchor-rag eval
+```
+
+## 📐 Arquitetura
+
+```
+┌─────────────┐     ┌──────────┐     ┌──────────────┐     ┌─────────────┐
+│   PDFs      │────▶│ Parser   │────▶│  Chunker     │────▶│  Embeddings │
+│  (input)    │     │(pdfplumb)│     │ (tokens/chars)│     │ (OpenAI/    │
+└─────────────┘     └──────────┘     └──────────────┘     │  Ollama/    │
+                                                          │  HF)        │
+                                                          └──────┬──────┘
+                                                                 │
+┌─────────────┐     ┌──────────┐     ┌──────────────┐          │
+│  Resposta   │◀────│Synthesiz.│◀────│ Vector Store │◀─────────┘
+│  + Citações │     │ (LLM +   │     │ (sqlite-vec) │
+└─────────────┘     │  prompt) │     └──────────────┘
+                    └──────────┘
+```
+
+## 🔧 Componentes
+
+### Ingestão (`anchor_rag/ingestion/`)
+- **Parser**: `PDFParser` protocol com `PdfPlumberParser` (tabelas) e `PyPDFParser` (fallback)
+- **Chunker**: Divisão por tokens (tiktoken) ou caracteres, com overlap configurável
+- **Pipeline**: Orquestração com dedup por hash, batch processing, error handling
+
+### Embeddings (`anchor_rag/embeddings/`)
+- **OpenAI**: `text-embedding-3-small/large`, retry exponencial, batch nativo
+- **Ollama**: Via HTTP `/api/embed`, modelos locais
+- **HuggingFace**: `sentence-transformers` local, batch encoding
+
+### Vector Store (`anchor_rag/vector_store/`)
+- **SQLite-vec**: Virtual table `chunks_vec`, busca cosseno via NumPy, DDL automático
+
+### Síntese (`anchor_rag/synthesis/`)
+- **LLM Providers**: OpenAI, Ollama, Anthropic com streaming
+- **Prompt Engineering**: Ancoragem estrita, few-shot defense contra prompt injection
+- **Citações**: Extração automática `[N]` mapeada para chunks fonte
+
+## ⚙️ Configuração
+
+```yaml
+# config.yaml
+embedding:
+  provider: "open          # openai, ollama, huggingface
+  model: "text-embedding-3-small"
+  dimensions: 1536
+  batch_size: 100
+  api_key_env: "OPENAI_API_KEY"
+
+llm:
+  provider: "openai"       # openai, ollama, anthropic
+  model: "gpt-4o-mini"
+  temperature: 0.1
+  max_tokens: 2048
+  api_key_env: "OPENAI_API_KEY"
+
+chunking:
+  chunk_size: 512
+  chunk_overlap: 50
+  chunk_unit: "tokens"     # chars ou tokens
+  min_chunk_size: 50
+
+vector_store:
+  type: "sqlite_vec"
+  path: "./data/anchor_rag.db"
+  embedding_dimensions: 1536
+
+logging:
+  level: "INFO"
+  format: "json"
+  output: "stdout"
+```
+
+## 📊 Comparativo de Embeddings
+
+| Provedor | Modelo | Dimensões | Latência | Custo | Privacidade |
+|----------|--------|-----------|----------|-------|-------------|
+| OpenAI | text-embedding-3-small | 1536 | ~100ms | $0.02/1M tokens | Baixa |
+| OpenAI | text-embedding-3-large | 3072 | ~200ms | $0.13/1M tokens | Baixa |
+| Ollama | nomic-embed-text | 768 | ~50ms | Grátis (local) | Alta |
+| Ollama | mxbai-embed-large | 1024 | ~100ms | Grátis (local) | Alta |
+| HF | all-MiniLM-L6-v2 | 384 | ~10ms | Grátis (local) | Alta |
+| HF | bge-m3 | 1024 | ~50ms | Grátis (local) | Alta |
+
+### Matemática da Similaridade de Cosseno
+
+Para vetores normalizados $u, v \in \mathbb{R}^d$:
+
+$$\text{similaridade}(u, v) = \frac{u \cdot v}{\|u\| \|v\|} = u \cdot v$$
+
+No sqlite-vec, a distância L2 entre vetores normalizados relaciona-se com cosseno:
+
+$$\text{distância}_{L2}(u, v) = \sqrt{2 - 2 \cdot \text{cosseno}(u, v)}$$
+
+$$\text{cosseno}(u, v) = 1 - \frac{\text{distância}_{L2}^2}{2}$$
+
+## 🛠️ CLI
+
+```bash
+# Ingestão
+anchor-rag ingest docs/ --recursive --parser pdfplumber --format json
+anchor-rag ingest file.pdf --force --chunk-size 256
+
+# Query
+anchor-rag query "O que é RAG?" --top-k 10 --threshold 0.5
+anchor-rag query "Resuma o documento" --llm-provider ollama --llm-model llama3.1:8b
+anchor-rag query "Liste os tópicos" --no-synthesis --format json
+
+# Eval
+anchor-rag eval --format json
+```
+
+## 🧪 Testes
+
+```bash
+# Unitários
+pytest tests/unit -v
+
+# Integração
+pytest tests/integration -v
+
+# Todos com coverage
+pytest --cov=anchor_rag --cov-report=html
+```
+
+## 📁 Estrutura do Projeto
+
+```
+src/anchor_rag/
+├── config.py              # Configuração Pydantic Settings
+├── cli.py                 # CLI principal (Typer)
+├── cli_ingest.py          # Comando ingest
+├── cli_query.py           # Comando query
+├── cli_eval.py            # Comando eval
+├── domain/
+│   ├── models.py          # Document, Chunk, QueryResult, configs
+│   └── exceptions.py      # Exceções customizadas
+├── ingestion/
+│   ├── parser.py          # PDFParser protocol + implementations
+│   ├── chunker.py         # Chunker com tokens/chars
+│   └── pipeline.py        # IngestionPipeline orquestrador
+├── embeddings/
+│   ├── base.py            # EmbeddingProvider ABC
+│   ├── openai.py          # OpenAIEmbeddingProvider
+│   ├── ollama.py          # OllamaEmbeddingProvider
+│   ├── huggingface.py     # HuggingFaceEmbeddingProvider
+│   └── __init__.py        # Factory create_embedding_provider
+├── vector_store/
+│   ├── base.py            # VectorStore ABC
+│   ├── sqlite_vec.py      # SQLiteVecStore
+│   └── __init__.py        # Factory create_vector_store
+├── synthesis/
+│   ├── llm.py             # LLMProvider ABC + LLMConfig/Response
+│   ├── openai_llm.py      # OpenAILLMProvider
+│   ├── ollama_llm.py      # OllamaLLMProvider
+│   ├── anthropic_llm.py   # AnthropicLLMProvider
+│   ├── prompt.py          # build_system_prompt, few-shot defense
+│   ├── synthesizer.py     # RAGSynthesizer
+│   └── __init__.py        # Factory create_llm_provider
+├── pipeline/
+│   └── orchestrator.py    # RAGPipeline principal
+└── utils/
+    └── text.py            # Hash, sanitização, chunking, tokens
+```
+
+## 🔒 Segurança - Ancoragem Estrita
+
+O system prompt impõe:
+1. **Resposta apenas baseada nos trechos** - conhecimento externo proibido
+2. **Citações obrigatórias** - `[N]` para cada afirmação
+3. **Declaração de ausência** - "Não encontrei..." se info não está nos trechos
+4. **Defesa few-shot** - Exemplos de prompt injection no prompt
+
+## 🐛 Troubleshooting
+
+| Problema | Solução |
+|----------|---------|
+| `sqlite-vec` não carrega | `pip install sqlite-vec` + verificar extensão SQLite |
+| OpenAI API error | Verificar `OPENAI_API_KEY` no `.env` ou config |
+| Ollama connection refused | Iniciar `ollama serve` ou verificar `base_url` |
+| Memória insuficiente (HF) | Usar modelo menor ou `batch_size` menor |
+| Chunks muito grandes | Reduzir `chunk_size` ou aumentar `chunk_overlap` |
+
+## 📈 Métricas de Avaliação
+
+- **Recall@k**: % de queries onde chunk relevante está no top-k
+- **MRR**: Mean Reciprocal Rank da primeira resposta relevante
+- **Latência P95**: Percentil 95 da latência end-to-end
+- **Taxa de alucinação**: % respostas com info não nos trechos
+- **Cobertura de citações**: % afirmações com citação válida
+
+## 🤝 Contribuição
+
+1. Fork do projeto
+2. Crie branch: `git checkout -b feature/nova-funcionalidade`
+3. Commit: `git commit -m 'feat: adiciona X'`
+4. Push: `git push origin feature/nova-funcionalidade`
+5. Abra Pull Request
+
+## 📄 Licença
+
+MIT License - veja [LICENSE](LICENSE) para detalhes.

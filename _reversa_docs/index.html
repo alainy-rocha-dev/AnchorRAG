@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AnchorRAG Docs — Pipeline RAG</title>
+  <meta name="reversa-category" content="index">
+  <meta name="reversa-producer-agent" content="reversa-docs-publisher">
+  <meta name="reversa-template" content="index">
+  <style>
+    :root {
+      --bg: #0d1117;
+      --card-bg: #161b22;
+      --border: #30363d;
+      --text: #c9d1d9;
+      --text-heading: #f0f6fc;
+      --accent: #58a6ff;
+      --accent-green: #3fb950;
+      --accent-purple: #bc8cff;
+      --accent-orange: #d29922;
+    }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    header {
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.3rem;
+      color: var(--text-heading);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .badge-tag {
+      background: rgba(88, 166, 255, 0.15);
+      color: var(--accent);
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .hero {
+      padding: 60px 32px 40px;
+      max-width: 1100px;
+      margin: 0 auto;
+      text-align: center;
+    }
+    .hero h2 {
+      font-size: 3rem;
+      font-weight: 800;
+      margin: 0 0 16px 0;
+      background: linear-gradient(135deg, #58a6ff 0%, #bc8cff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero p {
+      font-size: 1.25rem;
+      color: #8b949e;
+      max-width: 750px;
+      margin: 0 auto 32px;
+    }
+    .container {
+      max-width: 1100px;
+      margin: 0 auto 60px;
+      padding: 0 32px;
+    }
+    .nav-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 20px;
+    }
+    .nav-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      text-decoration: none;
+      color: var(--text);
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .nav-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+    .nav-card-icon {
+      font-size: 2rem;
+      margin-bottom: 12px;
+    }
+    .nav-card h3 {
+      margin: 0 0 8px 0;
+      color: var(--text-heading);
+      font-size: 1.2rem;
+    }
+    .nav-card p {
+      margin: 0;
+      color: #8b949e;
+      font-size: 0.9rem;
+    }
+    .nav-card-footer {
+      margin-top: 16px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--accent);
+    }
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 24px;
+      text-align: center;
+      font-size: 0.85rem;
+      color: #8b949e;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>
+      <span>🎼 AnchorRAG Docs</span>
+      <span class="badge-tag">PORTFOLIO SHOWCASE</span>
+    </h1>
+    <div>
+      <span style="font-size: 0.85rem; color: #8b949e;">Pipeline RAG</span>
+    </div>
+  </header>
+
+  <div class="hero">
+    <h2>Documentação Interativa de Engenharia</h2>
+    <p>
+      Mini-site visual para apresentar a arquitetura, métricas e especificações técnicas do Pipeline RAG.
+    </p>
+  </div>
+
+  <div class="container">
+    <div class="nav-grid">
+      <a href="arquitetura.html" class="nav-card">
+        <div>
+          <div class="nav-card-icon">🏢</div>
+          <h3>Arquitetura 3D (Code City)</h3>
+          <p>Visualização tridimensional espacial dos módulos do RAG com altura proporcional a Linhas de Código.</p>
+        </div>
+        <div class="nav-card-footer">Explorar em 3D →</div>
+      </a>
+
+      <a href="modulos.html" class="nav-card">
+        <div>
+          <div class="nav-card-icon">🕸️</div>
+          <h3>Mapa de Módulos 2D</h3>
+          <p>Grafo interativo de dependências e comunicação entre componentes (CLI, Ingestão, SQLite-vec e Synthesis).</p>
+        </div>
+        <div class="nav-card-footer">Ver Mapa de Nós →</div>
+      </a>
+
+      <a href="metricas.html" class="nav-card">
+        <div>
+          <div class="nav-card-icon">📊</div>
+          <h3>Dashboard de Métricas</h3>
+          <p>Estatísticas quantitativas do projeto, métricas de qualidade de código e benchmark de avaliação RAG.</p>
+        </div>
+        <div class="nav-card-footer">Ver Dashboard →</div>
+      </a>
+
+      <a href="glossario.html" class="nav-card">
+        <div>
+          <div class="nav-card-icon">📖</div>
+          <h3>Glossário do Domínio</h3>
+          <p>Dicionário com busca cliente-side para conceitos-chave: RAG, Embeddings, Ancoragem e SQLite-vec.</p>
+        </div>
+        <div class="nav-card-footer">Consultar Glossário →</div>
+      </a>
+
+      <a href="deck.html" class="nav-card" style="border-color: var(--accent-purple);">
+        <div>
+          <div class="nav-card-icon">🎬</div>
+          <h3>Apresentação Executiva</h3>
+          <p>Slide deck executivo interativo pronto para ser compartilhado com recrutadores e avaliadores técnicos.</p>
+        </div>
+        <div class="nav-card-footer" style="color: var(--accent-purple);">Abrir Slide Deck →</div>
+      </a>
+
+      <a href="features/001-pipeline-rag-hag2.html" class="nav-card">
+        <div>
+          <div class="nav-card-icon">⚙️</div>
+          <h3>Spec Feature 001</h3>
+          <p>Detalhamento de especificações do Pipeline RAG com 46 tarefas concluídas.</p>
+        </div>
+        <div class="nav-card-footer">Ver Especificação →</div>
+      </a>
+    </div>
+  </div>
+
+  <div class="footer">
+    <strong>AnchorRAG Documentation Suite</strong> • Documentação autocontida offline <code>file://</code>
+  </div>
+
+  <script src="assets/js/data.js"></script>
+</body>
+</html>

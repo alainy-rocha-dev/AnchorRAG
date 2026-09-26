@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Glossário do Domínio — AnchorRAG Docs</title>
+  <meta name="reversa-category" content="diagram">
+  <meta name="reversa-producer-agent" content="reversa-docs-storyteller">
+  <meta name="reversa-template" content="glossario">
+  <style>
+    :root {
+      --bg: #0d1117;
+      --card-bg: #161b22;
+      --border: #30363d;
+      --text: #c9d1d9;
+      --text-heading: #f0f6fc;
+      --accent: #58a6ff;
+      --accent-green: #3fb950;
+    }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    header {
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.25rem;
+      color: var(--text-heading);
+    }
+    header nav.reversa-doc-nav {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    header nav a {
+      color: var(--text);
+      text-decoration: none;
+      font-size: 0.85rem;
+      padding: 6px 12px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      line-height: 1;
+      height: 34px;
+      box-sizing: border-box;
+      transition: all 0.2s ease;
+    }
+    header nav a:hover, header nav a[aria-current="page"] {
+      background: rgba(88, 166, 255, 0.15);
+      color: var(--accent);
+    }
+    header nav a.nav-deck-btn {
+      background: linear-gradient(135deg, rgba(168, 85, 247, 0.25) 0%, rgba(88, 166, 255, 0.25) 100%);
+      border: 1px solid rgba(168, 85, 247, 0.5);
+      color: #d8b4fe;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 20px;
+      transition: all 0.25s ease;
+      box-shadow: 0 0 10px rgba(168, 85, 247, 0.2);
+      display: inline-flex;
+      align-items: center;
+      line-height: 1;
+      height: 34px;
+      box-sizing: border-box;
+    }
+    header nav a.nav-deck-btn:hover, header nav a.nav-deck-btn[aria-current="page"] {
+      background: linear-gradient(135deg, #bc8cff 0%, #58a6ff 100%);
+      color: #ffffff;
+      font-weight: 700;
+      box-shadow: 0 0 16px rgba(188, 140, 255, 0.6);
+      border-color: transparent;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 32px auto;
+      padding: 0 24px;
+    }
+    .concept-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    .concept-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      transition: border-color 0.2s;
+    }
+    .concept-card:hover {
+      border-color: var(--accent);
+    }
+    .concept-card h3 {
+      margin: 0 0 8px 0;
+      color: var(--accent);
+      font-size: 1.1rem;
+    }
+    .concept-card p {
+      margin: 0;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      color: var(--text);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>📖 Glossário do Domínio & Conceitos do RAG</h1>
+    <nav class="reversa-doc-nav">
+      <!-- NAV_LINKS -->
+      <a href="index.html">Visão geral</a>
+      <a href="arquitetura.html">Arquitetura 3D</a>
+      <a href="modulos.html">Módulos 2D</a>
+      <a href="metricas.html">Métricas</a>
+      <a href="glossario.html" aria-current="page">Glossário</a>
+      <a href="deck.html" class="nav-deck-btn">🎬 Apresentação</a>
+    </nav>
+  </header>
+
+  <div class="container">
+    <div class="concept-grid" id="conceptGrid">
+      <div class="concept-card">
+        <h3>RAG (Retrieval-Augmented Generation)</h3>
+        <p>Técnica que combina busca de dados relevantes em uma base vetorial (Retrieval) para subsidiar e ancorar a resposta de um modelo de linguagem (LLM Generation).</p>
+      </div>
+      <div class="concept-card">
+        <h3>Dense Embedding</h3>
+        <p>Vetor numérico contínuo (ex: 1536 dimensões no OpenAI text-embedding-3-small) que mapeia o significado semântico do texto em um espaço vetorial.</p>
+      </div>
+      <div class="concept-card">
+        <h3>SQLite-vec</h3>
+        <p>Extensão leve C/C++ para SQLite que habilita busca vetorial nativa via tabela virtual <code>vec0</code> sem necessidade de infraestrutura pesada externa.</p>
+      </div>
+      <div class="concept-card">
+        <h3>Chunking com Sliding Window</h3>
+        <p>Divisão de documentos PDF em pedaços de texto (chunks) com tamanho máximo e sobreposição (overlap) baseada em tokens (via tiktoken) para preservar o contexto.</p>
+      </div>
+      <div class="concept-card">
+        <h3>Strict Grounding (Ancoragem Estrita)</h3>
+        <p>Diretiva de prompt no LLM que exige responder estritamente com base nos fatos dos chunks fornecidos e citar explicitamente as fontes com tags <code>[N]</code>.</p>
+      </div>
+      <div class="concept-card">
+        <h3>Recall@k e MRR</h3>
+        <p>Métricas de avaliação de informação: Recall@k mede se o documento relevante estava nos top-k resultados; MRR mede a posição recíproca do primeiro resultado relevante.</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/js/data.js"></script>
+</body>
+</html>
