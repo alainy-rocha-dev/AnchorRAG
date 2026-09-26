@@ -1,0 +1,9 @@
+Tabela de Exemplo
+
+| Nome | Idade | Cidade |
+|------|-------|--------|
+| João | 30    | São Paulo |
+| Maria | 25   | Rio de Janeiro |
+| Pedro | 35   | Belo Horizonte |
+
+Esta tabela deve ser extraída corretamente.

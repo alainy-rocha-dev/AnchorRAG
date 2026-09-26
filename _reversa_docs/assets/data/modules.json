@@ -1,0 +1,102 @@
+{
+  "project": "Pipeline RAG",
+  "generated_at": "2026-09-22T19:25:00-03:00",
+  "summary": {
+    "total_modules": 11,
+    "total_files": 25,
+    "total_loc": 3200,
+    "languages": { "Python": 100 }
+  },
+  "modules": [
+    {
+      "id": "config",
+      "name": "Configuração",
+      "path": "src/anchor_rag/config.py",
+      "type": "configuration",
+      "loc": 180,
+      "classes": ["AppConfig", "EmbeddingConfig", "LLMConfig", "ChunkingConfig", "VectorStoreConfig"],
+      "description": "Gestão de configurações via Pydantic Settings e YAML"
+    },
+    {
+      "id": "domain",
+      "name": "Modelos de Domínio",
+      "path": "src/anchor_rag/domain/",
+      "type": "domain",
+      "loc": 250,
+      "classes": ["Document", "Chunk", "QueryResult", "ChunkUnit"],
+      "description": "Modelos Pydantic, DTOs e hierarquia de exceções"
+    },
+    {
+      "id": "utils",
+      "name": "Utilitários de Texto",
+      "path": "src/anchor_rag/utils/",
+      "type": "utility",
+      "loc": 120,
+      "functions": ["sanitize_text", "calculate_sha256"],
+      "description": "Limpeza NFKC, remoção de caracteres de controle e hashes"
+    },
+    {
+      "id": "logging",
+      "name": "Logging Estruturado",
+      "path": "src/anchor_rag/logging.py",
+      "type": "infrastructure",
+      "loc": 90,
+      "classes": ["JSONLogger"],
+      "description": "Log estruturado em JSON com request_id via contextvars"
+    },
+    {
+      "id": "ingestion",
+      "name": "Processamento e Ingestão",
+      "path": "src/anchor_rag/ingestion/",
+      "type": "pipeline_step",
+      "loc": 450,
+      "classes": ["PDFParser", "PdfPlumberParser", "Chunker", "IngestionPipeline"],
+      "description": "Extração PDF, chunking por tokens/chars e pipeline de ingestão"
+    },
+    {
+      "id": "embeddings",
+      "name": "Provedores de Embedding",
+      "path": "src/anchor_rag/embeddings/",
+      "type": "integration",
+      "loc": 380,
+      "classes": ["EmbeddingProvider", "OpenAIEmbeddingProvider", "OllamaEmbeddingProvider", "HuggingFaceEmbeddingProvider"],
+      "description": "Estratégia multicloud/local para geração de vetores dense"
+    },
+    {
+      "id": "vector_store",
+      "name": "Banco Vetorial (SQLite-vec)",
+      "path": "src/anchor_rag/vector_store/",
+      "type": "database",
+      "loc": 410,
+      "classes": ["VectorStore", "SQLiteVecStore"],
+      "description": "Armazenamento e busca vetorial via sqlite-vec e NumPy (similaridade cosseno)"
+    },
+    {
+      "id": "synthesis",
+      "name": "Síntese LLM & Ancoragem",
+      "path": "src/anchor_rag/synthesis/",
+      "type": "ai_synthesis",
+      "loc": 520,
+      "classes": ["LLMProvider", "OpenAILLMProvider", "OllamaLLMProvider", "AnthropicLLMProvider", "RAGSynthesizer"],
+      "description": "Síntese grounded com citações estritas [N] e defesa contra alucinação"
+    },
+    {
+      "id": "pipeline",
+      "name": "Orquestrador RAG",
+      "path": "src/anchor_rag/pipeline/",
+      "type": "orchestrator",
+      "loc": 280,
+      "classes": ["RAGPipeline"],
+      "description": "Orquestração completa end-to-end (ingest, query, benchmark)"
+    },
+    {
+      "id": "cli",
+      "name": "Interface CLI (Typer)",
+      "path": "src/anchor_rag/cli.py",
+      "type": "user_interface",
+      "loc": 350,
+      "functions": ["ingest_command", "query_command", "eval_command"],
+      "description": "CLI interativo Typer para ingestion, busca e avaliação RAG"
+    }
+  ]
+}

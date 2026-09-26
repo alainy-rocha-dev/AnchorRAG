@@ -1,0 +1,3 @@
+Arquivo corrompido para teste de erro.
+Contém caracteres inválidos: \x00\x01\x02
+E quebras estranhas.

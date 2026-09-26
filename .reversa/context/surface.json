@@ -1,0 +1,318 @@
+{
+  "project": "rag",
+  "scout_timestamp": "2026-09-22T18:05:00-03:00",
+  "root_path": "C:\\rag",
+  "excluded_paths": [
+    "node_modules",
+    ".git",
+    ".reversa",
+    "_reversa_sdd",
+    "_reversa_forward",
+    "dist",
+    "build",
+    "coverage",
+    "__pycache__",
+    ".cache",
+    ".agents",
+    ".claude"
+  ],
+  "languages": {
+    "python": {
+      "files": 42,
+      "percentage": 95,
+      "main": true
+    },
+    "yaml": {
+      "files": 1,
+      "percentage": 1
+    },
+    "toml": {
+      "files": 1,
+      "percentage": 1
+    },
+    "markdown": {
+      "files": 3,
+      "percentage": 3
+    }
+  },
+  "modules": [
+    {
+      "name": "hag_rag",
+      "path": "src/hag_rag/__init__.py",
+      "type": "package_root",
+      "description": "Package root, version 0.1.0"
+    },
+    {
+      "name": "hag_rag.config",
+      "path": "src/hag_rag/config.py",
+      "type": "config",
+      "description": "Configuração centralizada Pydantic Settings"
+    },
+    {
+      "name": "hag_rag.logging",
+      "path": "src/hag_rag/logging.py",
+      "type": "logging",
+      "description": "Logging JSON estruturado + request_id contextvar"
+    },
+    {
+      "name": "hag_rag.domain",
+      "path": "src/hag_rag/domain/",
+      "type": "domain",
+      "files": [
+        "models.py",
+        "exceptions.py"
+      ],
+      "description": "Modelos de domínio (Document, Chunk, QueryResult) + exceções"
+    },
+    {
+      "name": "hag_rag.utils",
+      "path": "src/hag_rag/utils/",
+      "type": "utils",
+      "files": [
+        "text.py"
+      ],
+      "description": "Utilitários: hash, sanitize, chunking, token counting"
+    },
+    {
+      "name": "hag_rag.ingestion",
+      "path": "src/hag_rag/ingestion/",
+      "type": "ingestion",
+      "files": [
+        "parser.py",
+        "chunker.py",
+        "pipeline.py"
+      ],
+      "description": "Parser PDF, Chunker, Pipeline de ingestão orquestrado"
+    },
+    {
+      "name": "hag_rag.embeddings",
+      "path": "src/hag_rag/embeddings/",
+      "type": "embeddings",
+      "files": [
+        "base.py",
+        "openai.py",
+        "ollama.py",
+        "huggingface.py",
+        "__init__.py"
+      ],
+      "description": "ABC + 3 provedores (OpenAI, Ollama, HF) + factory"
+    },
+    {
+      "name": "hag_rag.vector_store",
+      "path": "src/hag_rag/vector_store/",
+      "type": "vector_store",
+      "files": [
+        "base.py",
+        "sqlite_vec.py",
+        "__init__.py"
+      ],
+      "description": "ABC + SQLiteVecStore (sqlite-vec) + factory"
+    },
+    {
+      "name": "hag_rag.synthesis",
+      "path": "src/hag_rag/synthesis/",
+      "type": "synthesis",
+      "files": [
+        "llm.py",
+        "openai_llm.py",
+        "ollama_llm.py",
+        "anthropic_llm.py",
+        "prompt.py",
+        "synthesizer.py",
+        "__init__.py"
+      ],
+      "description": "ABC + 3 provedores LLM + prompt ancoragem + synthesizer"
+    },
+    {
+      "name": "hag_rag.pipeline",
+      "path": "src/hag_rag/pipeline/",
+      "type": "pipeline",
+      "files": [
+        "orchestrator.py"
+      ],
+      "description": "RAGPipeline orquestrador (ingest/query/eval)"
+    },
+    {
+      "name": "hag_rag.cli",
+      "path": "src/hag_rag/cli.py",
+      "type": "cli",
+      "files": [
+        "cli.py",
+        "cli_ingest.py",
+        "cli_query.py",
+        "cli_eval.py"
+      ],
+      "description": "Typer CLI com comandos ingest, query, eval"
+    }
+  ],
+  "entry_points": [
+    {
+      "type": "cli",
+      "path": "src/hag_rag/cli.py",
+      "command": "hag-rag",
+      "description": "Typer app: ingest|query|eval",
+      "framework": "typer"
+    },
+    {
+      "type": "config",
+      "path": "config.example.yaml",
+      "description": "Template YAML com todas as seções (embedding, llm, chunking, vector_store, logging, query_log)"
+    },
+    {
+      "type": "build",
+      "path": "pyproject.toml",
+      "description": "PEP 621, entry point hag-rag = hag_rag.cli:app"
+    },
+    {
+      "type": "ci_cd",
+      "path": ".github/workflows/ci.yml",
+      "description": "GitHub Actions: matrix Python 3.11/3.12, ruff, mypy, pytest, build"
+    },
+    {
+      "type": "test",
+      "command": "pytest",
+      "paths": [
+        "tests/unit",
+        "tests/integration"
+      ],
+      "framework": "pytest-asyncio"
+    }
+  ],
+  "frameworks": {
+    "language": "Python",
+    "version": ">=3.11",
+    "cli": "typer>=0.12",
+    "config": "pydantic>=2.8 + pydantic-settings>=2.4",
+    "pdf_parsing": ["pdfplumber>=0.11", "pypdf>=5.0"],
+    "tokenization": "tiktoken>=0.7",
+    "vector_math": "numpy>=1.26",
+    "vector_store": "sqlite-vec>=0.1.6",
+    "http_client": "httpx>=0.27",
+    "embeddings_providers": {
+      "openai": "openai>=1.35",
+      "ollama": "http nativo",
+      "huggingface": "sentence-transformers>=3.0 + torch>=2.3"
+    },
+    "llm_providers": {
+      "openai": "openai>=1.35",
+      "ollama": "http nativo",
+      "anthropic": "anthropic>=0.30"
+    },
+    "testing": ["pytest>=8.2", "pytest-asyncio>=0.23"],
+    "linting": "ruff>=0.5",
+    "type_checking": "mypy>=1.10 (strict)"
+  },
+  "database": {
+    "type": "SQLite + sqlite-vec",
+    "present": true,
+    "files": [
+      "src/hag_rag/vector_store/sqlite_vec.py"
+    ],
+    "tables": [
+      "documents",
+      "chunks",
+      "chunks_vec (virtual table)",
+      "query_log (opcional)"
+    ],
+    "config_path": "./data/hag_rag.db",
+    "query_log_table": "query_log",
+    "orm": "raw SQL + sqlite3"
+  },
+  "tests": {
+    "framework": "pytest + pytest-asyncio",
+    "unit": {
+      "count": 6,
+      "files": [
+        "tests/unit/test_config.py",
+        "tests/unit/test_models.py",
+        "tests/unit/test_text_utils.py",
+        "tests/unit/test_embedding_provider_contract.py",
+        "tests/unit/test_llm_provider_contract.py",
+        "tests/unit/test_vector_store_contract.py"
+      ]
+    },
+    "integration": {
+      "count": 4,
+      "files": [
+        "tests/integration/test_ingestion_pipeline.py",
+        "tests/integration/test_query_pipeline.py",
+        "tests/integration/test_e2e.py",
+        "tests/integration/test_prompt_injection.py"
+      ]
+    },
+    "fixtures": {
+      "count": 3,
+      "files": [
+        "tests/fixtures/sample_text.txt",
+        "tests/fixtures/table_text.txt",
+        "tests/fixtures/corrupted_text.txt"
+      ]
+    },
+    "estimated_coverage": "Não medido (pytest-cov configurado)"
+  },
+  "external_integrations": [
+    {
+      "name": "OpenAI API",
+      "type": "cloud_paid",
+      "config": "OPENAI_API_KEY env var",
+      "used_by": ["embeddings.openai", "synthesis.openai_llm"]
+    },
+    {
+      "name": "Ollama",
+      "type": "local_free",
+      "config": "base_url (default http://localhost:11434)",
+      "used_by": ["embeddings.ollama", "synthesis.ollama_llm"]
+    },
+    {
+      "name": "Anthropic API",
+      "type": "cloud_paid",
+      "config": "ANTHROPIC_API_KEY env var",
+      "used_by": ["synthesis.anthropic_llm"]
+    },
+    {
+      "name": "HuggingFace Models",
+      "type": "local_free",
+      "config": "model name (ex: sentence-transformers/all-MiniLM-L6-v2)",
+      "used_by": ["embeddings.huggingface"]
+    }
+  ],
+  "organization_suggestion": {
+    "granularity": "module",
+    "rationale": "Estrutura top-level em src/hag_rag/ segue domínio funcional (config, domain, ingestion, embeddings, vector_store, synthesis, pipeline, utils, logging, cli)",
+    "signals": [
+      {
+        "type": "top_level_domain_folders",
+        "evidence": [
+          "src/hag_rag/config.py",
+          "src/hag_rag/domain/",
+          "src/hag_rag/ingestion/",
+          "src/hag_rag/embeddings/",
+          "src/hag_rag/vector_store/",
+          "src/hag_rag/synthesis/",
+          "src/hag_rag/pipeline/",
+          "src/hag_rag/utils/",
+          "src/hag_rag/logging.py",
+          "src/hag_rag/cli*.py"
+        ]
+      }
+    ]
+  },
+  "architecture_patterns": [
+    "ABC + Factory para provedores (Embeddings, LLM, Vector Store)",
+    "Pipeline orquestrado (Parser → Chunker → Embeddings → Vector Store)",
+    "Dependency Injection via config (Pydantic Settings)",
+    "Async/await em todo pipeline I/O",
+    "Structured logging com request_id (contextvar)",
+    "CLI com Typer (comandos + shared options)"
+  ],
+  "key_files": {
+    "config_schema": "config.example.yaml",
+    "project_config": "pyproject.toml",
+    "main_entry": "src/hag_rag/cli.py",
+    "pipeline_orchestrator": "src/hag_rag/pipeline/orchestrator.py",
+    "domain_models": "src/hag_rag/domain/models.py",
+    "vector_store_impl": "src/hag_rag/vector_store/sqlite_vec.py",
+    "synthesis_prompt": "src/hag_rag/synthesis/prompt.py",
+    "ci_config": ".github/workflows/ci.yml"
+  }
+}

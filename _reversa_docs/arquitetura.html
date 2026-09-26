@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nova Arquitetura 3D Holográfica — AnchorRAG Docs</title>
+  <meta name="reversa-category" content="diagram">
+  <meta name="reversa-producer-agent" content="reversa-docs-mapper">
+  <meta name="reversa-template" content="arquitetura">
+  <style>
+    :root {
+      --bg: #030712;
+      --card-bg: rgba(17, 24, 39, 0.85);
+      --border: rgba(55, 65, 81, 0.6);
+      --text: #e5e7eb;
+      --text-heading: #f9fafb;
+      --cyan: #00f0ff;
+      --green: #00ff9d;
+      --purple: #a855f7;
+      --orange: #ff9900;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+    header {
+      background: rgba(15, 23, 42, 0.9);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(56, 189, 248, 0.2);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      z-index: 10;
+      flex-wrap: wrap;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.15rem;
+      color: var(--text-heading);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .neon-badge {
+      background: rgba(0, 240, 255, 0.15);
+      color: var(--cyan);
+      border: 1px solid rgba(0, 240, 255, 0.4);
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+    }
+    header nav.reversa-doc-nav {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    header nav a {
+      color: var(--text);
+      text-decoration: none;
+      font-size: 0.85rem;
+      padding: 6px 12px;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      line-height: 1;
+      height: 34px;
+      box-sizing: border-box;
+    }
+    header nav a:hover, header nav a[aria-current="page"] {
+      background: rgba(0, 240, 255, 0.15);
+      color: var(--cyan);
+      box-shadow: 0 0 12px rgba(0, 240, 255, 0.3);
+    }
+    header nav a.nav-deck-btn {
+      background: linear-gradient(135deg, rgba(168, 85, 247, 0.25) 0%, rgba(0, 240, 255, 0.25) 100%);
+      border: 1px solid rgba(168, 85, 247, 0.5);
+      color: #d8b4fe;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 20px;
+      transition: all 0.25s ease;
+      box-shadow: 0 0 10px rgba(168, 85, 247, 0.2);
+      display: inline-flex;
+      align-items: center;
+      line-height: 1;
+      height: 34px;
+      box-sizing: border-box;
+    }
+    header nav a.nav-deck-btn:hover, header nav a.nav-deck-btn[aria-current="page"] {
+      background: linear-gradient(135deg, #bc8cff 0%, #00f0ff 100%);
+      color: #000000;
+      font-weight: 700;
+      box-shadow: 0 0 16px rgba(0, 240, 255, 0.6);
+      border-color: transparent;
+    }
+    .main-container {
+      display: flex;
+      flex: 1;
+      position: relative;
+    }
+    #canvas-container {
+      flex: 1;
+      background: radial-gradient(circle at 50% 40%, #0b1528 0%, #030712 100%);
+      position: relative;
+      cursor: grab;
+    }
+    #canvas-container:active { cursor: grabbing; }
+
+    /* Control Overlay */
+    .view-controls {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      z-index: 5;
+      display: flex;
+      gap: 10px;
+      background: rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(8px);
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    .ctrl-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .ctrl-btn:hover, .ctrl-btn.active {
+      background: var(--cyan);
+      color: #000;
+      font-weight: bold;
+      box-shadow: 0 0 10px var(--cyan);
+    }
+
+    .info-panel {
+      width: 380px;
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      border-left: 1px solid var(--border);
+      padding: 24px 24px 60px 24px;
+      box-sizing: border-box;
+      overflow-y: auto;
+      z-index: 5;
+    }
+    .info-panel::-webkit-scrollbar, .inspector-modal::-webkit-scrollbar {
+      width: 6px;
+    }
+    .info-panel::-webkit-scrollbar-track, .inspector-modal::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    .info-panel::-webkit-scrollbar-thumb, .inspector-modal::-webkit-scrollbar-thumb {
+      background: rgba(0, 240, 255, 0.3);
+      border-radius: 4px;
+    }
+    .info-panel::-webkit-scrollbar-thumb:hover, .inspector-modal::-webkit-scrollbar-thumb:hover {
+      background: var(--cyan);
+    }
+    #module-list {
+      padding-bottom: 40px;
+    }
+    .info-panel h3 {
+      margin-top: 0;
+      color: var(--cyan);
+      font-size: 1.15rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .module-card {
+      background: rgba(31, 41, 55, 0.65);
+      border: 1px solid rgba(75, 85, 99, 0.5);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 14px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      position: relative;
+      overflow: visible;
+    }
+    .module-card:hover, .module-card.selected {
+      border-color: var(--cyan);
+      background: rgba(0, 240, 255, 0.1);
+      transform: translateX(-4px);
+      box-shadow: 0 0 15px rgba(0, 240, 255, 0.2);
+    }
+    .module-card h4 {
+      margin: 0 0 8px 0;
+      color: var(--text-heading);
+      font-size: 0.95rem;
+      font-weight: 700;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+      line-height: 1.4;
+    }
+    .module-card h4 span.module-card-title {
+      flex: 1;
+      word-break: break-word;
+    }
+    .module-card h4 span.module-card-height {
+      flex-shrink: 0;
+      font-size: 0.8rem;
+      font-weight: bold;
+      white-space: nowrap;
+      padding-top: 2px;
+    }
+    .module-card p {
+      margin: 0 0 10px 0;
+      font-size: 0.85rem;
+      color: #9ca3af;
+      line-height: 1.5;
+      word-break: break-word;
+      overflow-wrap: break-word;
+    }
+    .click-hint {
+      font-size: 0.75rem;
+      color: var(--cyan);
+      margin-top: 8px;
+      display: block;
+      font-weight: 600;
+      line-height: 1.3;
+    }
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      margin-top: 8px;
+    }
+    .badge-core { background: rgba(0, 240, 255, 0.15); color: var(--cyan); border: 1px solid rgba(0, 240, 255, 0.3); }
+    .badge-ai { background: rgba(168, 85, 247, 0.15); color: var(--purple); border: 1px solid rgba(168, 85, 247, 0.3); }
+    .badge-db { background: rgba(0, 255, 157, 0.15); color: var(--green); border: 1px solid rgba(0, 255, 157, 0.3); }
+    .badge-ui { background: rgba(255, 153, 0, 0.15); color: var(--orange); border: 1px solid rgba(255, 153, 0, 0.3); }
+
+    /* Modal / Inspector Drawer */
+    .inspector-modal {
+      position: fixed;
+      top: 0;
+      right: -540px;
+      width: 540px;
+      height: 100vh;
+      background: rgba(11, 17, 32, 0.96);
+      backdrop-filter: blur(20px);
+      border-left: 1px solid var(--cyan);
+      box-shadow: -10px 0 40px rgba(0, 240, 255, 0.25);
+      z-index: 100;
+      transition: right 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      padding: 32px 28px;
+      box-sizing: border-box;
+      overflow-y: auto;
+    }
+    .inspector-modal.active {
+      right: 0;
+    }
+    .modal-close {
+      position: absolute;
+      top: 24px;
+      right: 24px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fff;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 1.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    .modal-close:hover {
+      background: #ff4757;
+      border-color: #ff4757;
+    }
+    .modal-title {
+      font-size: 1.5rem;
+      color: var(--text-heading);
+      margin: 0 0 6px 0;
+    }
+    .modal-path {
+      font-family: monospace;
+      font-size: 0.82rem;
+      color: var(--cyan);
+      background: rgba(0, 240, 255, 0.1);
+      padding: 4px 8px;
+      border-radius: 4px;
+      display: inline-block;
+      margin-bottom: 20px;
+    }
+    .section-title {
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #9ca3af;
+      margin: 20px 0 8px 0;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 4px;
+    }
+    .metric-pill-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .metric-pill {
+      background: rgba(31, 41, 55, 0.8);
+      border: 1px solid var(--border);
+      padding: 12px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .metric-pill .val {
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: var(--green);
+    }
+    .metric-pill .lbl {
+      font-size: 0.75rem;
+      color: #9ca3af;
+    }
+
+    /* Tag Styling */
+    .class-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(168, 85, 247, 0.15);
+      border: 1px solid rgba(168, 85, 247, 0.35);
+      color: var(--purple);
+      font-family: monospace;
+      font-size: 0.82rem;
+      padding: 6px 12px;
+      border-radius: 6px;
+      margin: 4px 4px 4px 0;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+    .class-tag:hover, .class-tag.selected-tag {
+      background: rgba(0, 240, 255, 0.25);
+      border-color: var(--cyan);
+      color: #ffffff;
+      transform: translateY(-2px);
+      box-shadow: 0 0 12px rgba(0, 240, 255, 0.5);
+    }
+    .func-tag {
+      background: rgba(0, 240, 255, 0.1) !important;
+      border-color: rgba(0, 240, 255, 0.35) !important;
+      color: var(--cyan) !important;
+    }
+    .func-tag:hover, .func-tag.selected-tag {
+      background: rgba(0, 240, 255, 0.3) !important;
+      color: #ffffff !important;
+      box-shadow: 0 0 12px rgba(0, 240, 255, 0.5);
+    }
+
+    /* Symbol Popover / Inspector */
+    .symbol-popover {
+      background: #090f1d;
+      border: 1.5px solid var(--cyan);
+      border-radius: 10px;
+      padding: 18px;
+      margin: 16px 0;
+      box-shadow: 0 0 25px rgba(0, 240, 255, 0.3);
+      display: none;
+      animation: popIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+    }
+    .symbol-popover.active { display: block; }
+    @keyframes popIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .symbol-popover .type-badge {
+      display: inline-block;
+      background: rgba(0, 255, 157, 0.15);
+      color: var(--green);
+      border: 1px solid rgba(0, 255, 157, 0.3);
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: bold;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .symbol-popover .sig {
+      font-family: monospace;
+      color: #38bdf8;
+      font-size: 0.9rem;
+      font-weight: bold;
+      margin-bottom: 10px;
+      word-break: break-all;
+      background: rgba(15, 23, 42, 0.8);
+      padding: 8px 10px;
+      border-radius: 6px;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+    .symbol-popover .desc {
+      font-size: 0.88rem;
+      color: #cbd5e1;
+      line-height: 1.5;
+      margin-bottom: 8px;
+    }
+    .symbol-popover .returns {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      font-family: monospace;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 6px 10px;
+      border-radius: 4px;
+    }
+
+    pre.code-snippet {
+      background: #090d16;
+      border: 1px solid var(--border);
+      padding: 14px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 0.8rem;
+      color: #38bdf8;
+      overflow-x: auto;
+    }
+
+    canvas { width: 100%; height: 100%; display: block; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>
+      <span>⚡ Nova Arquitetura 3D Holográfica (Cyberpunk Grid)</span>
+      <span class="neon-badge">Next-Gen Visualizer</span>
+    </h1>
+    <nav class="reversa-doc-nav">
+      <!-- NAV_LINKS -->
+      <a href="index.html">Visão geral</a>
+      <a href="arquitetura.html" aria-current="page">Arquitetura 3D</a>
+      <a href="modulos.html">Módulos 2D</a>
+      <a href="metricas.html">Métricas</a>
+      <a href="glossario.html">Glossário</a>
+      <a href="deck.html" class="nav-deck-btn">🎬 Apresentação</a>
+    </nav>
+  </header>
+
+  <div class="main-container">
+    <div id="canvas-container">
+      <div class="view-controls">
+        <button class="ctrl-btn active" id="btn-auto-spin" onclick="toggleSpin()">🔄 Auto-Giro</button>
+        <button class="ctrl-btn" onclick="resetView()">🎯 Resetar Visão</button>
+        <button class="ctrl-btn" onclick="toggleParticles()">✨ Feixes de Partículas</button>
+      </div>
+      <canvas id="hologramCanvas"></canvas>
+    </div>
+
+    <div class="info-panel">
+      <h3>💎 Módulos Holográficos</h3>
+      <p style="font-size: 0.82rem; color: #9ca3af; margin-bottom: 16px;">
+        Clique em qualquer torre 3D ou item abaixo para abrir a <strong>Inspeção Completa</strong> do módulo.
+      </p>
+      <div id="module-list"></div>
+    </div>
+  </div>
+
+  <!-- Inspector Modal / Drawer -->
+  <div class="inspector-modal" id="inspectorModal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div id="modalContent"></div>
+  </div>
+
+  <script src="assets/js/data.js"></script>
+  <script>
+    const canvas = document.getElementById('hologramCanvas');
+    const ctx = canvas.getContext('2d');
+    const container = document.getElementById('canvas-container');
+
+    let autoSpin = true;
+    let showParticles = true;
+    let selectedModuleId = null;
+
+    let rotationAngle = 0.4;
+    let tiltAngle = 0.55;
+    let zoomScale = 1.0;
+
+    let isDragging = false;
+    let dragStarted = false;
+    let previousMouseX = 0;
+    let previousMouseY = 0;
+
+    function toggleSpin() {
+      autoSpin = !autoSpin;
+      document.getElementById('btn-auto-spin').classList.toggle('active', autoSpin);
+    }
+
+    function resetView() {
+      rotationAngle = 0.4;
+      tiltAngle = 0.55;
+      zoomScale = 1.0;
+    }
+
+    function toggleParticles() {
+      showParticles = !showParticles;
+    }
+
+    // Interactive Dragging
+    container.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      dragStarted = false;
+      previousMouseX = e.clientX;
+      previousMouseY = e.clientY;
+    });
+
+    window.addEventListener('mouseup', () => isDragging = false);
+
+    container.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      const deltaX = e.clientX - previousMouseX;
+      const deltaY = e.clientY - previousMouseY;
+
+      if (Math.abs(deltaX) > 2 || Math.abs(deltaY) > 2) {
+        dragStarted = true;
+      }
+
+      rotationAngle += deltaX * 0.005;
+      tiltAngle += deltaY * 0.003;
+      tiltAngle = Math.max(0.2, Math.min(1.2, tiltAngle));
+
+      previousMouseX = e.clientX;
+      previousMouseY = e.clientY;
+    });
+
+    container.addEventListener('wheel', (e) => {
+      zoomScale += e.deltaY * -0.001;
+      zoomScale = Math.max(0.6, Math.min(1.8, zoomScale));
+    });
+
+    // Detailed Symbol Knowledge Registry
+    const SYMBOL_DETAILS = {
+      // Ingestion
+      "parse_pdf()": {
+        type: "Função / Método",
+        signature: "parse_pdf(file_path: Path, password: Optional[str] = None) -> List[PageData]",
+        description: "Extrai texto estruturado e metadados de cada página do PDF utilizando pdfplumber com fallback automático para PyPDF em arquivos legados.",
+        returns: "Retorna List[PageData] com page_number, text, char_count e layout."
+      },
+      "chunk_by_tokens()": {
+        type: "Método Principal",
+        signature: "chunk_by_tokens(text: str, chunk_size: int = 500, overlap: int = 50) -> List[Chunk]",
+        description: "Segmenta o texto em pedaços (chunks) com contagem exata de tokens tiktoken (cl100k_base), aplicando janela deslizante com sobreposição para manter o contexto.",
+        returns: "Retorna List[Chunk] (id, text, token_count, page_number, doc_hash)."
+      },
+      "run_pipeline()": {
+        type: "Método Orquestrador",
+        signature: "run_pipeline(pdf_paths: List[Path], config: IngestConfig) -> IngestionReport",
+        description: "Executa a cadeia de ingestão end-to-end: parse_pdf → sanitize_text → chunk_by_tokens → embed_batch → add_chunks (SQLite-vec).",
+        returns: "Retorna IngestionReport com total_chunks, total_tokens e tempo de execução."
+      },
+      "PDFParser": {
+        type: "Interface / Protocol ABC",
+        signature: "class PDFParser(ABC)",
+        description: "Interface base abstrata para parsers PDF. Garante o contrato uniforme parse() e extract_metadata().",
+        returns: "Contrato abstrato de parsing"
+      },
+      "PdfPlumberParser": {
+        type: "Classe Concreta",
+        signature: "class PdfPlumberParser(PDFParser)",
+        description: "Leitor de PDF de alta fidelidade usando pdfplumber. Extrai tabelas, colunas de texto e preserva ordenação de leitura.",
+        returns: "Parser principal"
+      },
+      "PyPDFParser": {
+        type: "Classe Fallback",
+        signature: "class PyPDFParser(PDFParser)",
+        description: "Leitor de alta velocidade usando PyPDF, ativado quando o PDF é corrompido ou possui restrições de layout.",
+        returns: "Parser secundário"
+      },
+      "Chunker": {
+        type: "Classe",
+        signature: "class Chunker(chunk_size: int = 500, chunk_overlap: int = 50, unit: ChunkUnit = ChunkUnit.TOKENS)",
+        description: "Algoritmo flexível de chunking por Tokens (tiktoken) ou Caracteres, com cálculo de hash SHA256 para evitar duplicações.",
+        returns: "Segmentador de texto"
+      },
+      "IngestionPipeline": {
+        type: "Classe Batch",
+        signature: "class IngestionPipeline(parser: PDFParser, chunker: Chunker, embedder: EmbeddingProvider, store: VectorStore)",
+        description: "Pipeline batch multithreaded para processamento massivo de arquivos PDF.",
+        returns: "Orquestrador de ingestão"
+      },
+
+      // LLM Synthesis
+      "build_system_prompt()": {
+        type: "Função",
+        signature: "build_system_prompt(chunks: List[Chunk], strictness: float = 1.0) -> str",
+        description: "Constrói o System Prompt de ancoragem estrita (strict grounding), proibindo o LLM de utilizar conhecimentos externos não presentes no contexto.",
+        returns: "Prompt com instrução de citação [N]"
+      },
+      "build_user_prompt()": {
+        type: "Função",
+        signature: "build_user_prompt(query: str, retrieved_chunks: List[QueryResult]) -> str",
+        description: "Monta o User Prompt contendo a pergunta original e os chunks numerados [1]..[N] trazidos pela busca vetorial.",
+        returns: "Contexto formatado para síntese"
+      },
+      "synthesize()": {
+        type: "Método Principal",
+        signature: "synthesize(query: str, retrieved_chunks: List[QueryResult]) -> QueryResult",
+        description: "Submete os prompts ao LLM Provider, gerencia a resposta com streaming e extrai as citações [N] para validar a ancoragem.",
+        returns: "QueryResult (answer, citations, latency_ms, hallucination_score)"
+      },
+      "LLMProvider": {
+        type: "Interface ABC",
+        signature: "class LLMProvider(ABC)",
+        description: "Interface base para integração multicloud com LLMs (OpenAI, Ollama, Anthropic).",
+        returns: "Contrato de linguagem"
+      },
+      "OpenAILLMProvider": {
+        type: "Provedor Cloud",
+        signature: "class OpenAILLMProvider(model='gpt-4o-mini', temperature=0.0)",
+        description: "Provedor OpenAI oficial usando GPT-4o ou GPT-4o-mini com temperatura 0 para maior determinismo.",
+        returns: "Respostas via API OpenAI"
+      },
+      "OllamaLLMProvider": {
+        type: "Provedor Local",
+        signature: "class OllamaLLMProvider(model='llama3.2', host='http://localhost:11434')",
+        description: "Provedor offline via Ollama HTTP API, permitindo rodar Llama 3.2 localmente sem envio de dados à nuvem.",
+        returns: "Respostas locais offline"
+      },
+      "AnthropicLLMProvider": {
+        type: "Provedor Cloud",
+        signature: "class AnthropicLLMProvider(model='claude-3-5-sonnet-20241022')",
+        description: "Provedor Anthropic usando Claude 3.5 Sonnet para raciocínio complexo e síntese de alta precisão.",
+        returns: "Respostas via Anthropic SDK"
+      },
+      "RAGSynthesizer": {
+        type: "Classe Central",
+        signature: "class RAGSynthesizer(llm: LLMProvider, prompt_builder: PromptBuilder)",
+        description: "Sintetizador RAG que coordena a geração grounded e valida a presença de citações.",
+        returns: "Síntese com ancoragem"
+      },
+
+      // SQLite-vec
+      "init_db()": {
+        type: "Método Database",
+        signature: "init_db(db_path: Path = Path('data/rag.db')) -> None",
+        description: "Carrega a biblioteca C sqlite-vec, inicializa o arquivo SQLite3 e executa DDL da virtual table `vec0` (dimensão 1536).",
+        returns: "Tabela vec0 criada"
+      },
+      "add_chunks()": {
+        type: "Método Inserção",
+        signature: "add_chunks(chunks: List[Chunk], vectors: np.ndarray) -> int",
+        description: "Insere o lote de vetores float32 e os metadados dos chunks (doc_id, page, text) na tabela `vec0` de forma atômica.",
+        returns: "Contagem de registros inseridos"
+      },
+      "search()": {
+        type: "Método Busca",
+        signature: "search(query_vector: np.ndarray, top_k: int = 5) -> List[QueryResult]",
+        description: "Executa a busca por similaridade cosseno na virtual table `vec0` usando o operador MATCH do sqlite-vec e ordena por ranking.",
+        returns: "List[QueryResult] com similaridade e metadados"
+      },
+      "get_stats()": {
+        type: "Método Telemetria",
+        signature: "get_stats() -> DBStats",
+        description: "Retorna contagem total de vetores indexados, tamanho do arquivo .db em MB e dimensão vetorial.",
+        returns: "Estatísticas do SQLite-vec"
+      },
+      "VectorStore": {
+        type: "Interface ABC",
+        signature: "class VectorStore(ABC)",
+        description: "Contrato base para banco de dados vetorial.",
+        returns: "Interface de busca vetorial"
+      },
+      "SQLiteVecStore": {
+        type: "Implementação Nativa",
+        signature: "class SQLiteVecStore(VectorStore)",
+        description: "Banco vetorial ultraleve baseado em sqlite-vec C-extension e NumPy para cálculo vetorial.",
+        returns: "Repositorio vetorial local"
+      },
+
+      // Embeddings
+      "embed()": {
+        type: "Método Embed",
+        signature: "embed(text: str) -> np.ndarray",
+        description: "Gera o vetor dense (ex: 1536 float32) para um texto individual.",
+        returns: "np.ndarray (1536,)"
+      },
+      "embed_batch()": {
+        type: "Método Batch",
+        signature: "embed_batch(texts: List[str], batch_size: int = 64) -> np.ndarray",
+        description: "Gera vetores dense em lote para múltiplos textos com otimização de requisições HTTP.",
+        returns: "np.ndarray (N, 1536)"
+      },
+      "create_embedding_provider()": {
+        type: "Factory",
+        signature: "create_embedding_provider(config: EmbeddingConfig) -> EmbeddingProvider",
+        description: "Factory com registry dinâmico para instanciar OpenAI, Ollama ou HuggingFace.",
+        returns: "Instância de EmbeddingProvider"
+      },
+      "EmbeddingProvider": {
+        type: "Interface ABC",
+        signature: "class EmbeddingProvider(ABC)",
+        description: "Contrato para geradores de embeddings.",
+        returns: "Provedor de embeddings"
+      },
+      "OpenAIEmbeddingProvider": {
+        type: "Provedor Cloud",
+        signature: "class OpenAIEmbeddingProvider(model='text-embedding-3-small')",
+        description: "Integração oficial OpenAI embeddings (1536d).",
+        returns: "Embeddings OpenAI"
+      },
+      "OllamaEmbeddingProvider": {
+        type: "Provedor Local",
+        signature: "class OllamaEmbeddingProvider(model='nomic-embed-text')",
+        description: "Embeddings locais Nomic Embed via Ollama.",
+        returns: "Embeddings locais"
+      },
+      "HuggingFaceEmbeddingProvider": {
+        type: "Provedor Local HF",
+        signature: "class HuggingFaceEmbeddingProvider(model='all-MiniLM-L6-v2')",
+        description: "Embeddings via PyTorch/sentence-transformers.",
+        returns: "Embeddings HuggingFace"
+      },
+
+      // CLI & Pipeline
+      "ingest_command()": {
+        type: "Comando CLI",
+        signature: "anchor-rag ingest [--path PATH] [--chunk-size 500] [--overlap 50]",
+        description: "Comando CLI Typer para varrer diretórios e executar ingestão com barra de progresso.",
+        returns: "Execução CLI Ingest"
+      },
+      "query_command()": {
+        type: "Comando CLI",
+        signature: "anchor-rag query [QUESTION] [--top-k 5] [--format json]",
+        description: "Comando CLI para realizar perguntas interativas no terminal com citações.",
+        returns: "Resposta RAG no terminal"
+      },
+      "eval_command()": {
+        type: "Comando CLI",
+        signature: "anchor-rag eval [--dataset gold_set.json]",
+        description: "Executa benchmark de Recall@k, MRR, latência e taxa de alucinação.",
+        returns: "Métricas de avaliação"
+      },
+      "ingest()": {
+        type: "Método Pipeline",
+        signature: "ingest(paths: List[Path]) -> IngestionReport",
+        description: "Ponto de entrada do RAGPipeline para ingestão batch.",
+        returns: "IngestionReport"
+      },
+      "eval()": {
+        type: "Método Pipeline",
+        signature: "eval(gold_set: BenchmarkDataset) -> EvaluationReport",
+        description: "Ponto de entrada para benchmark quantitativo.",
+        returns: "EvaluationReport"
+      },
+      "RAGPipeline": {
+        type: "Orquestrador Central",
+        signature: "class RAGPipeline(config: AppConfig)",
+        description: "Orquestrador principal que integra Ingestão, Embeddings, SQLite-vec e LLM Synthesis.",
+        returns: "Pipeline RAG operacional"
+      },
+      "TyperCLI": {
+        type: "Interface CLI",
+        signature: "app = typer.Typer(name='anchor-rag')",
+        description: "Aplicação Typer CLI.",
+        returns: "Interface CLI"
+      }
+    };
+
+    const modules = [
+      {
+        id: "synthesis",
+        name: "LLM Synthesis & Prompt",
+        type: "ai",
+        loc: 520,
+        height: 210,
+        x: -140,
+        z: -100,
+        color: "#a855f7",
+        path: "src/anchor_rag/synthesis/",
+        desc: "Ancoragem estrita, citações [N] e pouca alucinação",
+        fullDesc: "Responsável pela montagem de prompts de ancoragem estrita e síntese via LLMs (OpenAI, Ollama, Anthropic). Implementa extração automática de citações em formato [N] e mecanismo pouca-alucinação com poucos-exemplos (few-shot defense).",
+        classes: ["LLMProvider", "OpenAILLMProvider", "OllamaLLMProvider", "AnthropicLLMProvider", "RAGSynthesizer"],
+        functions: ["build_system_prompt()", "build_user_prompt()", "synthesize()"],
+        metrics: { complexity: "18 (Alta)", coverage: "100%", latency: "1.2s", status: "🟢 Ativo" },
+        snippet: `class RAGSynthesizer:\n    def synthesize(self, query: str, chunks: List[Chunk]) -> QueryResult:\n        prompt = build_system_prompt(chunks)\n        response = self.llm.complete(prompt)\n        return extract_citations(response)`
+      },
+      {
+        id: "ingestion",
+        name: "Ingestão PDF & Chunker",
+        type: "core",
+        loc: 450,
+        height: 180,
+        x: 120,
+        z: -120,
+        color: "#00f0ff",
+        path: "src/anchor_rag/ingestion/",
+        desc: "Parser PDF com sliding window tiktoken",
+        fullDesc: "Leitura e análise estruturada de documentos PDF com leitores PdfPlumber e PyPDF. Realiza sanitização de caracteres de controle, normalização NFKC e chunking por contagem exata de tokens via biblioteca tiktoken.",
+        classes: ["PDFParser", "PdfPlumberParser", "PyPDFParser", "Chunker", "IngestionPipeline"],
+        functions: ["parse_pdf()", "chunk_by_tokens()", "run_pipeline()"],
+        metrics: { complexity: "15 (Média-Alta)", coverage: "100%", latency: "0.35s", status: "🟢 Ativo" },
+        snippet: `class Chunker:\n    def chunk_by_tokens(self, text: str, chunk_size=500, overlap=50) -> List[Chunk]:\n        tokens = tiktoken_encode(text)\n        return sliding_window(tokens, chunk_size, overlap)`
+      },
+      {
+        id: "vector_store",
+        name: "SQLite-vec Store",
+        type: "db",
+        loc: 410,
+        height: 165,
+        x: -150,
+        z: 100,
+        color: "#00ff9d",
+        path: "src/anchor_rag/vector_store/",
+        desc: "Virtual table vec0 e busca cosseno via NumPy",
+        fullDesc: "Camada de armazenamento e busca vetorial de alta velocidade utilizando a extensão C sqlite-vec. Cria a tabela virtual vec0, realiza indexação vetorial dense e executa similaridade cosseno acelerada via NumPy.",
+        classes: ["VectorStore", "SQLiteVecStore"],
+        functions: ["init_db()", "add_chunks()", "search()", "get_stats()"],
+        metrics: { complexity: "14 (Média)", coverage: "100%", latency: "12ms", status: "🟢 Ativo" },
+        snippet: `class SQLiteVecStore(VectorStore):\n    def search(self, query_vector: np.ndarray, top_k=5) -> List[QueryResult]:\n        return self.db.execute("SELECT * FROM vec0 WHERE vec MATCH ?", (query_vector,))`
+      },
+      {
+        id: "embeddings",
+        name: "Multi-Provider Embeddings",
+        type: "ai",
+        loc: 380,
+        height: 150,
+        x: 130,
+        z: 80,
+        color: "#a855f7",
+        path: "src/anchor_rag/embeddings/",
+        desc: "OpenAI / Ollama / HuggingFace factory",
+        fullDesc: "Provedores de vetorização dense abstraídos por interface ABC. Suporta modelos remotos da OpenAI (text-embedding-3-small), locais via Ollama HTTP API e modelos HuggingFace via sentence-transformers com retry automático.",
+        classes: ["EmbeddingProvider", "OpenAIEmbeddingProvider", "OllamaEmbeddingProvider", "HuggingFaceEmbeddingProvider"],
+        functions: ["embed()", "embed_batch()", "create_embedding_provider()"],
+        metrics: { complexity: "12 (Média)", coverage: "100%", latency: "0.22s", status: "🟢 Ativo" },
+        snippet: `def create_embedding_provider(config: AppConfig) -> EmbeddingProvider:\n    if config.provider == "openai": return OpenAIEmbeddingProvider()\n    return OllamaEmbeddingProvider()`
+      },
+      {
+        id: "cli",
+        name: "Interface Typer CLI",
+        type: "ui",
+        loc: 350,
+        height: 140,
+        x: 0,
+        z: 180,
+        color: "#ff9900",
+        path: "src/anchor_rag/cli.py",
+        desc: "Comandos ingest, query e eval",
+        fullDesc: "Ponto de entrada do usuário via linha de comando construído com Typer e Rich. Oferece os subcomandos 'ingest' (processamento de PDFs), 'query' (busca interativa RAG) e 'eval' (benchmark de Recall@k e MRR).",
+        classes: ["TyperCLI"],
+        functions: ["ingest_command()", "query_command()", "eval_command()"],
+        metrics: { complexity: "11 (Normal)", coverage: "100%", latency: "Fast", status: "🟢 Ativo" },
+        snippet: `@app.command()\ndef query(question: str = typer.Argument(...), top_k: int = 5):\n    result = pipeline.query(question, top_k=top_k)\n    console.print_json(result.to_json())`
+      },
+      {
+        id: "pipeline",
+        name: "Orquestrador RAGPipeline",
+        type: "core",
+        loc: 280,
+        height: 110,
+        x: 0,
+        z: -30,
+        color: "#00f0ff",
+        path: "src/anchor_rag/pipeline/",
+        desc: "Wiring end-to-end do fluxo de dados",
+        fullDesc: "Classe central de orquestração (RAGPipeline) que conecta a cadeia completa: Ingestão PDF → Geração de Vetores Embeddings → Armazenamento no SQLite-vec → Busca de Contexto → Síntese no LLM.",
+        classes: ["RAGPipeline"],
+        functions: ["ingest()", "query()", "eval()"],
+        metrics: { complexity: "10 (Baixa)", coverage: "100%", latency: "< 1.8s Total", status: "🟢 Ativo" },
+        snippet: `class RAGPipeline:\n    def query(self, question: str) -> QueryResult:\n        vec = self.embeddings.embed(question)\n        chunks = self.vector_store.search(vec)\n        return self.synthesizer.synthesize(question, chunks)`
+      }
+    ];
+
+    // Connections (Data Beams)
+    const connections = [
+      { from: "cli", to: "pipeline" },
+      { from: "pipeline", to: "ingestion" },
+      { from: "pipeline", to: "embeddings" },
+      { from: "pipeline", to: "vector_store" },
+      { from: "pipeline", to: "synthesis" },
+      { from: "embeddings", to: "vector_store" },
+      { from: "vector_store", to: "synthesis" }
+    ];
+
+    // Populate Sidebar
+    const listEl = document.getElementById('module-list');
+    modules.forEach(m => {
+      const card = document.createElement('div');
+      card.className = 'module-card';
+      card.id = `card-${m.id}`;
+      const badgeClass = m.type === 'ai' ? 'badge-ai' : m.type === 'db' ? 'badge-db' : m.type === 'ui' ? 'badge-ui' : 'badge-core';
+      card.innerHTML = `
+        <h4><span class="module-card-title">${m.name}</span><span class="module-card-height" style="color: ${m.color};">${m.height}m</span></h4>
+        <p>${m.desc}</p>
+        <span class="badge ${badgeClass}">${m.type.toUpperCase()} • ${m.loc} LOC</span>
+        <span class="click-hint">🔍 Clique para Inspecionar →</span>
+      `;
+      card.onclick = () => selectModule(m.id);
+      listEl.appendChild(card);
+    });
+
+    function selectModule(id) {
+      selectedModuleId = id;
+      document.querySelectorAll('.module-card').forEach(c => c.classList.remove('selected'));
+      const activeCard = document.getElementById(`card-${id}`);
+      if (activeCard) activeCard.classList.add('selected');
+
+      openInspectorModal(id);
+    }
+
+    function openInspectorModal(id) {
+      const m = modules.find(item => item.id === id);
+      if (!m) return;
+
+      const modalContent = document.getElementById('modalContent');
+      const classesHtml = m.classes.map(c => `<span class="class-tag" onclick="showSymbolDetails(event, '${c}', 'class')">📦 ${c}</span>`).join('');
+      const funcsHtml = m.functions.map(f => `<span class="class-tag func-tag" onclick="showSymbolDetails(event, '${f}', 'func')">⚡ ${f}</span>`).join('');
+
+      modalContent.innerHTML = `
+        <div style="font-size: 0.8rem; color: ${m.color}; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">Módulo ${m.type.toUpperCase()}</div>
+        <h2 class="modal-title">${m.name}</h2>
+        <div class="modal-path">${m.path}</div>
+
+        <div class="metric-pill-grid">
+          <div class="metric-pill"><div class="val">${m.loc}</div><div class="lbl">Linhas de Código</div></div>
+          <div class="metric-pill"><div class="val">${m.metrics.complexity}</div><div class="lbl">Complexidade Ciclomática</div></div>
+          <div class="metric-pill"><div class="val">${m.metrics.coverage}</div><div class="lbl">Cobertura de Testes</div></div>
+          <div class="metric-pill"><div class="val">${m.metrics.status}</div><div class="lbl">Estado</div></div>
+        </div>
+
+        <div class="section-title">📋 Responsabilidade Arquitetural</div>
+        <p style="font-size: 0.9rem; color: #d1d5db; line-height: 1.6; margin-top: 6px;">${m.fullDesc}</p>
+
+        <div class="section-title">📦 Classes de Domínio (Clique para Ver Assinatura & Docs)</div>
+        <div>${classesHtml}</div>
+        <div id="classSymbolPopover" class="symbol-popover"></div>
+
+        <div class="section-title">⚡ Principais Funções / Métodos (Clique para Ver Assinatura & Docs)</div>
+        <div>${funcsHtml}</div>
+        <div id="funcSymbolPopover" class="symbol-popover"></div>
+
+        <div class="section-title">💻 Contrato de Implementação</div>
+        <pre class="code-snippet"><code>${m.snippet}</code></pre>
+      `;
+
+      document.getElementById('inspectorModal').classList.add('active');
+    }
+
+    function showSymbolDetails(event, symbolName, symbolCategory = 'class') {
+      if (event) event.stopPropagation();
+
+      document.querySelectorAll('.class-tag').forEach(t => t.classList.remove('selected-tag'));
+      if (event && event.currentTarget) {
+        event.currentTarget.classList.add('selected-tag');
+      }
+
+      const classPop = document.getElementById('classSymbolPopover');
+      const funcPop = document.getElementById('funcSymbolPopover');
+      if (classPop) classPop.classList.remove('active');
+      if (funcPop) funcPop.classList.remove('active');
+
+      const pop = (symbolCategory === 'func') ? funcPop : classPop;
+      if (!pop) return;
+
+      const info = SYMBOL_DETAILS[symbolName] || {
+        type: "Símbolo",
+        signature: `${symbolName}`,
+        description: `Definição técnica do símbolo ${symbolName} do pacote.`,
+        returns: "Retorna tipo de dados do módulo"
+      };
+
+      pop.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div class="type-badge">${info.type}</div>
+          <span style="font-size: 0.72rem; color: var(--cyan); font-weight: bold;">INSPECIONADO</span>
+        </div>
+        <div class="sig">${info.signature}</div>
+        <div class="desc">${info.description}</div>
+        <div class="returns"><strong>Retorno / Efeito:</strong> ${info.returns}</div>
+      `;
+
+      pop.classList.add('active');
+      pop.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function closeModal() {
+      document.getElementById('inspectorModal').classList.remove('active');
+      selectedModuleId = null;
+      document.querySelectorAll('.module-card').forEach(c => c.classList.remove('selected'));
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeModal();
+    });
+
+    let particles = Array.from({ length: 40 }, () => ({
+      connIndex: Math.floor(Math.random() * connections.length),
+      progress: Math.random(),
+      speed: 0.008 + Math.random() * 0.012
+    }));
+
+    function project3D(x, y, z) {
+      const cosR = Math.cos(rotationAngle);
+      const sinR = Math.sin(rotationAngle);
+      const cosT = Math.cos(tiltAngle);
+      const sinT = Math.sin(tiltAngle);
+
+      // Rotate around Y
+      const rx = x * cosR - z * sinR;
+      const rz = x * sinR + z * cosR;
+
+      // Rotate around X (Tilt)
+      const ry = y * cosT - rz * sinT;
+      const rzFinal = y * sinT + rz * cosT;
+
+      const scale = (800 / (800 + rzFinal)) * zoomScale;
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2 + 40;
+
+      return {
+        x: cx + rx * scale,
+        y: cy + ry * scale,
+        scale: scale,
+        depth: rzFinal
+      };
+    }
+
+    // Canvas click collision detection for 3D towers
+    canvas.addEventListener('click', (e) => {
+      if (dragStarted) return;
+      const rect = canvas.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const clickY = e.clientY - rect.top;
+
+      let clickedModule = null;
+      modules.forEach(m => {
+        const base = project3D(m.x, 0, m.z);
+        const top = project3D(m.x, -m.height, m.z);
+        const width = 45 * base.scale;
+
+        if (clickX >= top.x - width && clickX <= top.x + width && clickY >= top.y - 20 && clickY <= base.y + 10) {
+          clickedModule = m.id;
+        }
+      });
+
+      if (clickedModule) {
+        selectModule(clickedModule);
+      }
+    });
+
+    function resize() {
+      canvas.width = canvas.parentElement.clientWidth;
+      canvas.height = canvas.parentElement.clientHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    function animate() {
+      if (autoSpin && !isDragging) {
+        rotationAngle += 0.003;
+      }
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // 1. Draw Hologram Grid Floor
+      const gridSize = 400;
+      const gridStep = 50;
+      ctx.strokeStyle = "rgba(0, 240, 255, 0.12)";
+      ctx.lineWidth = 1;
+
+      for (let gx = -gridSize; gx <= gridSize; gx += gridStep) {
+        const p1 = project3D(gx, 0, -gridSize);
+        const p2 = project3D(gx, 0, gridSize);
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.stroke();
+      }
+      for (let gz = -gridSize; gz <= gridSize; gz += gridStep) {
+        const p1 = project3D(-gridSize, 0, gz);
+        const p2 = project3D(gridSize, 0, gz);
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.stroke();
+      }
+
+      // 2. Sort Towers Back-to-Front
+      const sortedModules = [...modules].map(m => {
+        const proj = project3D(m.x, 0, m.z);
+        return { ...m, depth: proj.depth };
+      }).sort((a, b) => b.depth - a.depth);
+
+      // 3. Draw Laser Beams Connections
+      connections.forEach(conn => {
+        const m1 = modules.find(m => m.id === conn.from);
+        const m2 = modules.find(m => m.id === conn.to);
+        if (m1 && m2) {
+          const p1 = project3D(m1.x, -m1.height / 2, m1.z);
+          const p2 = project3D(m2.x, -m2.height / 2, m2.z);
+
+          ctx.strokeStyle = "rgba(0, 240, 255, 0.35)";
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([4, 4]);
+          ctx.beginPath();
+          ctx.moveTo(p1.x, p1.y);
+          ctx.lineTo(p2.x, p2.y);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+      });
+
+      // 4. Draw Particles Flow
+      if (showParticles) {
+        particles.forEach(pt => {
+          pt.progress += pt.speed;
+          if (pt.progress > 1) pt.progress = 0;
+
+          const conn = connections[pt.connIndex];
+          const m1 = modules.find(m => m.id === conn.from);
+          const m2 = modules.find(m => m.id === conn.to);
+          if (m1 && m2) {
+            const p1 = project3D(m1.x, -m1.height / 2, m1.z);
+            const p2 = project3D(m2.x, -m2.height / 2, m2.z);
+            const px = p1.x + (p2.x - p1.x) * pt.progress;
+            const py = p1.y + (p2.y - p1.y) * pt.progress;
+
+            ctx.fillStyle = "#00ffff";
+            ctx.shadowColor = "#00ffff";
+            ctx.shadowBlur = 8;
+            ctx.beginPath();
+            ctx.arc(px, py, 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+          }
+        });
+      }
+
+      // 5. Draw Holographic Towers
+      sortedModules.forEach(m => {
+        const base = project3D(m.x, 0, m.z);
+        const top = project3D(m.x, -m.height, m.z);
+        const isSelected = (m.id === selectedModuleId);
+
+        const width = 45 * base.scale;
+        const towerColor = isSelected ? "#ffffff" : m.color;
+
+        // Draw Vertical Glow Body
+        const grad = ctx.createLinearGradient(base.x, base.y, top.x, top.y);
+        grad.addColorStop(0, "rgba(0, 0, 0, 0.2)");
+        grad.addColorStop(0.5, towerColor + "66");
+        grad.addColorStop(1, towerColor + "cc");
+
+        ctx.fillStyle = grad;
+        ctx.fillRect(top.x - width / 2, top.y, width, base.y - top.y);
+
+        // Tower Outer Neon Border
+        ctx.strokeStyle = towerColor;
+        ctx.lineWidth = isSelected ? 3.5 : 1.5;
+        if (isSelected) {
+          ctx.shadowColor = "#00ffff";
+          ctx.shadowBlur = 20;
+        }
+        ctx.strokeRect(top.x - width / 2, top.y, width, base.y - top.y);
+        ctx.shadowBlur = 0;
+
+        // Top Pulse Cap
+        ctx.fillStyle = towerColor;
+        ctx.beginPath();
+        ctx.ellipse(top.x, top.y, width / 2, 8 * base.scale, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Label Tag
+        ctx.fillStyle = isSelected ? "#00ffff" : "#f3f4f6";
+        ctx.font = `bold ${Math.round(12 * base.scale)}px sans-serif`;
+        ctx.textAlign = "center";
+        ctx.fillText(m.name, top.x, top.y - 12);
+      });
+
+      requestAnimationFrame(animate);
+    }
+
+    animate();
+  </script>
+</body>
+</html>

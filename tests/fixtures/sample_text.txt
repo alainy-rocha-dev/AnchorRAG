@@ -1,0 +1,8 @@
+Este é um documento de teste para o HAG RAG.
+Contém múltiplas páginas de conteúdo.
+
+Página 2: Mais conteúdo aqui para testar chunking.
+Este texto deve ser dividido em chunks apropriados.
+
+Página 3: Última página do documento de teste.
+Finalizando o conteúdo para validação.
