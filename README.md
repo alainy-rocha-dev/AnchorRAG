@@ -53,11 +53,20 @@ anchor-rag eval
 
 ### Vector Store (`anchor_rag/vector_store/`)
 - **SQLite-vec**: Virtual table `chunks_vec`, busca cosseno via NumPy, DDL automático
+- **Eval Log**: Tabela `eval_log` para histórico de avaliações agentic
 
 ### Síntese (`anchor_rag/synthesis/`)
 - **LLM Providers**: OpenAI, Ollama, Anthropic com streaming
 - **Prompt Engineering**: Ancoragem estrita, few-shot defense contra prompt injection
 - **Citações**: Extração automática `[N]` mapeada para chunks fonte
+
+### Avaliação Agentic (`anchor_rag/evaluation/`)
+- **LLM-as-Judge**: Avaliador ABC + 3 provedores (OpenAI, Ollama, Anthropic)
+- **Métricas RAGAS-like**: Faithfulness, Answer Relevancy, Context Precision, Context Recall
+- **Critique-and-Refine**: Auto-avaliação iterativa (≤3 chamadas LLM) com threshold configurável
+- **Comparative Evaluation**: Paired t-test + Bootstrap IC 95% entre múltiplos provedores
+- **Drift Detection**: Comparação vs baseline versionado (hash dataset + config), exit codes 0/1/2
+- **Cost Estimator**: Cálculo USD baseado em tokens × pricing table por provedor/modelo
 
 ## ⚙️ Configuração
 
@@ -129,8 +138,14 @@ anchor-rag query "O que é RAG?" --top-k 10 --threshold 0.5
 anchor-rag query "Resuma o documento" --llm-provider ollama --llm-model llama3.1:8b
 anchor-rag query "Liste os tópicos" --no-synthesis --format json
 
-# Eval
+# Eval (básico)
 anchor-rag eval --format json
+
+# Eval Agentic (feature 003)
+anchor-rag eval --agentic --judge ollama                    # Avaliação LLM-as-judge
+anchor-rag eval --agentic --compare openai,ollama          # Comparativo multi-provedor + stats
+anchor-rag eval --drift-check --baseline eval_baseline.json # Drift detection (exit 0/1/2)
+anchor-rag eval --agentic --output markdown                # Saída Markdown formatada
 ```
 
 ## 🧪 Testes
@@ -154,14 +169,15 @@ src/anchor_rag/
 ├── cli.py                 # CLI principal (Typer)
 ├── cli_ingest.py          # Comando ingest
 ├── cli_query.py           # Comando query
-├── cli_eval.py            # Comando eval
+├── cli_eval.py            # Comando eval (básico + agentic)
 ├── domain/
-│   ├── models.py          # Document, Chunk, QueryResult, configs
+│   ├── models.py          # Document, Chunk, QueryResult, configs, EvalMetrics, ComparativeMetrics, DriftResult, CostEstimate
 │   └── exceptions.py      # Exceções customizadas
 ├── ingestion/
 │   ├── parser.py          # PDFParser protocol + implementations
 │   ├── chunker.py         # Chunker com tokens/chars
-│   └── pipeline.py        # IngestionPipeline orquestrador
+│   ├── pipeline.py        # IngestionPipeline orquestrador
+│   └── structured_chunker.py  # Chunker estruturado (tabelas, listas)
 ├── embeddings/
 │   ├── base.py            # EmbeddingProvider ABC
 │   ├── openai.py          # OpenAIEmbeddingProvider
@@ -170,7 +186,7 @@ src/anchor_rag/
 │   └── __init__.py        # Factory create_embedding_provider
 ├── vector_store/
 │   ├── base.py            # VectorStore ABC
-│   ├── sqlite_vec.py      # SQLiteVecStore
+│   ├── sqlite_vec.py      # SQLiteVecStore (inclui eval_log)
 │   └── __init__.py        # Factory create_vector_store
 ├── synthesis/
 │   ├── llm.py             # LLMProvider ABC + LLMConfig/Response
@@ -180,8 +196,21 @@ src/anchor_rag/
 │   ├── prompt.py          # build_system_prompt, few-shot defense
 │   ├── synthesizer.py     # RAGSynthesizer
 │   └── __init__.py        # Factory create_llm_provider
+├── evaluation/            # NOVO: feature 003
+│   ├── evaluator.py       # EvaluatorProvider ABC + 3 provedores
+│   ├── critique_refine.py # CritiqueAndRefineSynthesizer
+│   ├── comparative.py     # ComparativeEvaluator + stats
+│   ├── drift.py           # DriftDetector
+│   ├── cost.py            # CostEstimator
+│   └── __init__.py        # Factory create_evaluator_provider
 ├── pipeline/
-│   └── orchestrator.py    # RAGPipeline principal
+│   ├── orchestrator.py    # RAGPipeline principal (eval_dataset_agentic, drift_check)
+│   └── hybrid_orchestrator.py  # Pipeline híbrido vetorial + FTS
+├── retrieval/             # NOVO: feature 002
+│   ├── fts.py             # Full-text search SQLite
+│   ├── hybrid.py          # Hybrid retriever (vetorial + FTS)
+│   ├── rerank.py          # Cross-encoder reranker
+│   └── __init__.py        # Factory
 └── utils/
     └── text.py            # Hash, sanitização, chunking, tokens
 ```
@@ -193,6 +222,22 @@ O system prompt impõe:
 2. **Citações obrigatórias** - `[N]` para cada afirmação
 3. **Declaração de ausência** - "Não encontrei..." se info não está nos trechos
 4. **Defesa few-shot** - Exemplos de prompt injection no prompt
+
+## 🤖 Avaliação Agentic (Feature 003)
+
+O pipeline inclui avaliação avançada estilo **RAGAS** usando LLM-as-judge:
+
+| Capacidade | Descrição | Comando |
+|------------|-----------|---------|
+| **LLM-as-Judge** | 4 métricas de qualidade via LLM separado do síntese | `--agentic --judge ollama` |
+| **Critique-and-Refine** | Auto-melhoria iterativa (≤2 refinamentos) | Automático com `--agentic` |
+| **Comparativo Multi-Provedor** | Paired t-test + Bootstrap IC 95% entre OpenAI/Ollama/Anthropic | `--compare openai,ollama` |
+| **Drift Detection** | Monitoramento contínuo vs baseline versionado | `--drift-check --baseline file.json` |
+| **Cost Estimator** | USD estimado por query/run (tokens × pricing table) | Incluído no relatório |
+
+**Thresholds default**: 0.7 para todas as métricas (dispara refine se abaixo)
+
+**Orçamento default**: $0.50 por run completo (20 queries × 3 métricas × 2 iterações)
 
 ## 🐛 Troubleshooting
 
@@ -206,11 +251,28 @@ O system prompt impõe:
 
 ## 📈 Métricas de Avaliação
 
+### Métricas Básicas
 - **Recall@k**: % de queries onde chunk relevante está no top-k
 - **MRR**: Mean Reciprocal Rank da primeira resposta relevante
 - **Latência P95**: Percentil 95 da latência end-to-end
 - **Taxa de alucinação**: % respostas com info não nos trechos
 - **Cobertura de citações**: % afirmações com citação válida
+
+### Métricas Agentic (RAGAS-like, feature 003)
+- **Faithfulness**: Fidelidade da resposta ao contexto recuperado (0-1)
+- **Answer Relevancy**: Relevância da resposta à query original (0-1)
+- **Context Precision**: Precisão dos chunks recuperados vs resposta (0-1)
+- **Context Recall**: Cobertura dos chunks relevantes para a query (0-1)
+
+### Métricas Comparativas
+- **Paired t-test**: Significância estatística entre provedores (p-value)
+- **Bootstrap IC 95%**: Intervalo de confiança da diferença de médias
+- **Cost per Query**: USD estimado por query (tokens × pricing table)
+
+### Drift Detection
+- **Drift %**: Variação vs baseline versionado (hash dataset + config)
+- **Alert Threshold**: Default >10% degradação em qualquer métrica
+- **Exit Codes**: 0=OK, 1=Drift detectado, 2=Erro
 
 ## 🤝 Contribuição
 
