@@ -1,0 +1,42 @@
+embedding:
+  provider: "huggingface"
+  model: "sentence-transformers/all-MiniLM-L6-v2"
+  dimensions: 384
+  batch_size: 32
+
+llm:
+  provider: "ollama"
+  model: "llama3.1:8b"
+  temperature: 0.1
+  max_tokens: 2048
+  timeout: 30
+  base_url: "http://localhost:11434"
+
+chunking:
+  chunk_size: 512
+  chunk_overlap: 50
+  chunk_unit: "tokens"
+  min_chunk_size: 50
+  parser: "pdfplumber"
+  structured: false
+
+vector_store:
+  type: "sqlite_vec"
+  path: "./data/anchor_rag.db"
+  embedding_dimensions: 384
+
+retrieval:
+  mode: "hybrid"
+  reranker_provider: null
+  reranker_model: "BAAI/bge-reranker-v2-m3"
+  reranker_batch_size: 32
+
+logging:
+  level: "INFO"
+  format: "json"
+  output: "stdout"
+  include_request_id: true
+
+query_log:
+  enabled: false
+  path: "./data/query_log.db"

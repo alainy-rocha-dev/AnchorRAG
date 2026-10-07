@@ -40,12 +40,19 @@ chunking:
   chunk_overlap: 50
   chunk_unit: "tokens"  # chars ou tokens
   min_chunk_size: 50
+  parser: "pdfplumber"  # pdfplumber ou pypdf
+  structured: false  # true = chunking por artigo/inciso/parágrafo (normas jurídicas)
 
 vector_store:
   type: "sqlite_vec"  # sqlite_vec (único suportado por enquanto)
   path: "./data/anchor_rag.db"
-  # Configurações específicas do sqlite-vec
-  embedding_dimensions: 1536  # Deve corresponder ao embedding.provider
+  embedding_dimensions: 1536  # Deve corresponder ao embedding.dimensions
+
+retrieval:
+  mode: "hybrid"  # vector, hybrid, fts_only
+  reranker_provider: null  # huggingface, ollama, cohere
+  reranker_model: "BAAI/bge-reranker-v2-m3"  # bge-reranker-v2-m3, bge-reranker-base
+  reranker_batch_size: 32
 
 logging:
   level: "INFO"  # DEBUG, INFO, WARNING, ERROR

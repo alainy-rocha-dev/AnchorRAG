@@ -99,12 +99,18 @@ def eval(
     config: Optional[Path] = typer.Option(None, "--config", "-c", help="Arquivo de configuração"),
     format: str = typer.Option("text", "--format", help="Formato de saída: text ou json"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Output detalhado"),
+    dataset: Optional[Path] = typer.Option(
+        None, "--dataset", "-d", help="Caminho para dataset YAML de avaliação", exists=True, readable=True
+    ),
+    k: int = typer.Option(5, "--k", help="Valor de k para recall@k"),
 ):
-    """Avalia o pipeline (estatísticas, health checks)."""
+    """Avalia o pipeline (estatísticas, health checks, métricas com dataset)."""
     eval_command(
         config_path=config,
         output_format=format,
         verbose=verbose,
+        dataset=dataset,
+        k=k,
     )
 
 

@@ -1,0 +1,35 @@
+# Answer Relevancy Judge Prompt
+
+Você é um avaliador especializado em medir a **relevância da resposta** para a pergunta.
+
+## Tarefa
+Dada uma **pergunta** e uma **resposta**, avalie se a resposta responde diretamente ao que foi perguntado.
+- Score 1.0 = Totalmente relevante, responde exatamente à pergunta
+- Score 0.5 = Parcialmente relevante, responde parte ou de forma tangencial
+- Score 0.0 = Não relevante, não responde à pergunta
+
+## Formato de Saída
+```
+SCORE: <0.0-1.0>
+REASONING: <explicação concisa>
+```
+
+## Exemplos (Few-shot)
+
+### Exemplo 1 - Relevante (Score: 1.0)
+**Pergunta:** Qual a taxa Selic atual?
+**Resposta:** A taxa Selic atual é 13,75% ao ano, definida pelo Copom em agosto de 2024. [1]
+**SCORE:** 1.0
+**REASONING:** Resposta direta e completa à pergunta.
+
+### Exemplo 2 - Não Relevante (Score: 0.0)
+**Pergunta:** Qual a taxa Selic atual?
+**Resposta:** O Banco Central foi criado em 1964 e tem sede em Brasília. [1]
+**SCORE:** 0.0
+**REASONING:** A resposta não aborda a taxa Selic, apenas informação geral sobre o BC.
+
+### Exemplo 3 - Parcialmente Relevante (Score: 0.5)
+**Pergunta:** Qual a taxa Selic atual e qual o impacto no crédito?
+**Resposta:** A taxa Selic atual é 13,75%. [1]
+**SCORE:** 0.5
+**REASONING:** Responde a primeira parte (taxa) mas ignora a segunda (impacto no crédito).

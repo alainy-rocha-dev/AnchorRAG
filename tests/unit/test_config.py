@@ -90,6 +90,8 @@ llm:
   model: "llama3.1:8b"
 chunking:
   chunk_size: 256
+vector_store:
+  embedding_dimensions: 768
 """
         config_file = tmp_path / "test_config.yaml"
         config_file.write_text(yaml_content)
@@ -111,3 +113,42 @@ chunking:
         resolved = config.resolve_api_keys()
         assert resolved.embedding.api_key == "test-key-123"
         assert resolved.llm.api_key == "anthropic-key"
+
+    def test_cross_config_valid_dimensions_match(self):
+        config = AppConfig(
+            embedding=EmbeddingConfig(dimensions=768),
+            vector_store=VectorStoreConfig(embedding_dimensions=768),
+        )
+        assert config.embedding.dimensions == 768
+        assert config.vector_store.embedding_dimensions == 768
+
+    def test_cross_config_invalid_dimensions_mismatch(self):
+        with pytest.raises(ValueError, match="embedding.dimensions \\(1536\\) != vector_store.embedding_dimensions \\(768\\)"):
+            AppConfig(
+                embedding=EmbeddingConfig(dimensions=1536),
+                vector_store=VectorStoreConfig(embedding_dimensions=768),
+            )
+
+    def test_cross_config_from_yaml_valid(self, tmp_path):
+        yaml_content = """
+embedding:
+  dimensions: 768
+vector_store:
+  embedding_dimensions: 768
+"""
+        config_file = tmp_path / "test_config.yaml"
+        config_file.write_text(yaml_content)
+        config = AppConfig.from_yaml(config_file)
+        assert config.embedding.dimensions == 768
+
+    def test_cross_config_from_yaml_invalid(self, tmp_path):
+        yaml_content = """
+embedding:
+  dimensions: 1536
+vector_store:
+  embedding_dimensions: 768
+"""
+        config_file = tmp_path / "test_config.yaml"
+        config_file.write_text(yaml_content)
+        with pytest.raises(ValueError, match="embedding.dimensions \\(1536\\) != vector_store.embedding_dimensions \\(768\\)"):
+            AppConfig.from_yaml(config_file)

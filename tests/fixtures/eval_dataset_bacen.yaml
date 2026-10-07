@@ -1,0 +1,203 @@
+# Dataset de Avaliação BACEN - AnchorRAG
+# Versão: 1.0
+# Fonte: Normas do Banco Central do Brasil (Resoluções CMN, Circulares BACEN, Comunicados, Resoluções BCB)
+# Formato: Lista de casos de teste para avaliação de recall@k, MRR, taxa de alucinação, cobertura de citações
+
+eval_cases:
+  - id: "bacen_001"
+    question: "Qual o limite de exposição de crédito para uma única contraparte segundo a Resolução CMN 4.557?"
+    expected_chunks: ["chunk_cmn4557_art12", "chunk_cmn4557_art13"]
+    expected_answer_contains: "25% do Patrimônio de Referência"
+    metadata:
+      source: "Resolução CMN 4.557"
+      topic: "Limite de exposição de crédito"
+      difficulty: "fácil"
+
+  - id: "bacen_002"
+    question: "Quais são os requisitos de capital mínimo para instituições de pagamento segundo a Circular BACEN 3.978?"
+    expected_chunks: ["chunk_cb3978_art5", "chunk_cb3978_art6"]
+    expected_answer_contains: "Patrimônio Líquido mínimo de R$ 2 milhões"
+    metadata:
+      source: "Circular BACEN 3.978"
+      topic: "Capital mínimo instituições de pagamento"
+      difficulty: "médio"
+
+  - id: "bacen_003"
+    question: "Como a Resolução CMN 4.893 trata a classificação de risco de crédito para operações de microcrédito?"
+    expected_chunks: ["chunk_cmn4893_art8", "chunk_cmn4893_art9"]
+    expected_answer_contains: "classificação de risco simplificada"
+    metadata:
+      source: "Resolução CMN 4.893"
+      topic: "Classificação de risco microcrédito"
+      difficulty: "médio"
+
+  - id: "bacen_004"
+    question: "Qual o prazo para envio de informações ao Cadastro de Clientes do Sistema Financeiro (CCS) conforme Comunicado BACEN 35.000?"
+    expected_chunks: ["chunk_com35000_art3"]
+    expected_answer_contains: "até o 10º dia útil do mês subsequente"
+    metadata:
+      source: "Comunicado BACEN 35.000"
+      topic: "Prazo envio CCS"
+      difficulty: "fácil"
+
+  - id: "bacen_005"
+    question: "Quais operações estão sujeitas ao limite de concentração de risco por setor econômico na Resolução CMN 4.557?"
+    expected_chunks: ["chunk_cmn4557_art15", "chunk_cmn4557_art16"]
+    expected_answer_contains: "exposições a setores que representem mais de 20% da carteira"
+    metadata:
+      source: "Resolução CMN 4.557"
+      topic: "Concentração de risco por setor"
+      difficulty: "difícil"
+
+  - id: "bacen_006"
+    question: "Qual o Coeficiente de Liquidez Diário (CLD) mínimo exigido pela Resolução CMN 4.867?"
+    expected_chunks: ["chunk_cmn4867_art4", "chunk_cmn4867_art5"]
+    expected_answer_contains: "100%"
+    metadata:
+      source: "Resolução CMN 4.867"
+      topic: "Requisitos de liquidez - CLD"
+      difficulty: "médio"
+
+  - id: "bacen_007"
+    question: "Quais são as responsabilidades do Comitê de Auditoria segundo a Resolução CMN 4.589 sobre governança corporativa?"
+    expected_chunks: ["chunk_cmn4589_art12", "chunk_cmn4589_art13"]
+    expected_answer_contains: "supervisionar a qualidade das demonstrações financeiras"
+    metadata:
+      source: "Resolução CMN 4.589"
+      topic: "Governança corporativa - Comitê de Auditoria"
+      difficulty: "médio"
+
+  - id: "bacen_008"
+    question: "Como a Circular BACEN 3.980 define risco operacional e quais seus eventos de perda?"
+    expected_chunks: ["chunk_cb3980_art2", "chunk_cb3980_art3"]
+    expected_answer_contains: "risco de perda resultante de falha, deficiência ou inadequação"
+    metadata:
+      source: "Circular BACEN 3.980"
+      topic: "Risco operacional - definição e eventos"
+      difficulty: "médio"
+
+  - id: "bacen_009"
+    question: "Quais são os limites de valor para comunicação de operações suspeitas ao COAF conforme Comunicado BACEN 34.500?"
+    expected_chunks: ["chunk_com34500_art4", "chunk_com34500_art5"]
+    expected_answer_contains: "R$ 10.000,00 para operações em espécie"
+    metadata:
+      source: "Comunicado BACEN 34.500"
+      topic: "Prevenção à lavagem de dinheiro - limites COAF"
+      difficulty: "médio"
+
+  - id: "bacen_010"
+    question: "Quais são os requisitos de compartilhamento de dados no Open Finance segundo a Resolução BCB 240?"
+    expected_chunks: ["chunk_bcb240_art6", "chunk_bcb240_art7"]
+    expected_answer_contains: "consentimento do cliente"
+    metadata:
+      source: "Resolução BCB 240"
+      topic: "Open Finance - compartilhamento de dados"
+      difficulty: "difícil"
+
+  - id: "bacen_011"
+    question: "Qual o limite de valor para transações Pix sem chave cadastrada segundo a Resolução BCB 155?"
+    expected_chunks: ["chunk_bcb155_art12"]
+    expected_answer_contains: "R$ 1.000,00 por transação"
+    metadata:
+      source: "Resolução BCB 155"
+      topic: "Pix - limites sem chave"
+      difficulty: "fácil"
+
+  - id: "bacen_012"
+    question: "Como a Resolução CMN 4.193 define o Capital de Nível 1 (Core Capital) para fins de Basileia III?"
+    expected_chunks: ["chunk_cmn4193_art3", "chunk_cmn4193_art4"]
+    expected_answer_contains: "ações ordinárias, reservas de lucros, outros instrumentos de capital principal"
+    metadata:
+      source: "Resolução CMN 4.193"
+      topic: "Capital de Nível 1 - Basileia III"
+      difficulty: "difícil"
+
+  - id: "bacen_013"
+    question: "Qual o percentual mínimo de provisão para créditos de liquidação duvidosa com atraso superior a 180 dias segundo Resolução CMN 2.682?"
+    expected_chunks: ["chunk_cmn2682_art8"]
+    expected_answer_contains: "100%"
+    metadata:
+      source: "Resolução CMN 2.682"
+      topic: "Provisão para créditos de liquidação duvidosa"
+      difficulty: "médio"
+
+  - id: "bacen_014"
+    question: "Quais são os requisitos de margem para operações com derivativos conforme Circular BACEN 3.640?"
+    expected_chunks: ["chunk_cb3640_art5", "chunk_cb3640_art6"]
+    expected_answer_contains: "margem inicial e margem de variação"
+    metadata:
+      source: "Circular BACEN 3.640"
+      topic: "Derivativos - requisitos de margem"
+      difficulty: "difícil"
+
+  - id: "bacen_015"
+    question: "Como a Resolução CMN 4.580 regula a exposição cambial das instituições financeiras?"
+    expected_chunks: ["chunk_cmn4580_art4", "chunk_cmn4580_art5"]
+    expected_answer_contains: "limite de 30% do Patrimônio de Referência"
+    metadata:
+      source: "Resolução CMN 4.580"
+      topic: "Exposição cambial - limites"
+      difficulty: "médio"
+
+  - id: "bacen_016"
+    question: "Quais são as regras para constituição e funcionamento de consórcios segundo a Resolução CMN 4.741?"
+    expected_chunks: ["chunk_cmn4741_art3", "chunk_cmn4741_art4"]
+    expected_answer_contains: "autorização do Banco Central"
+    metadata:
+      source: "Resolução CMN 4.741"
+      topic: "Consórcios - constituição e funcionamento"
+      difficulty: "médio"
+
+  - id: "bacen_017"
+    question: "Qual o capital mínimo exigido para cooperativas de crédito singulares conforme Resolução CMN 4.945?"
+    expected_chunks: ["chunk_cmn4945_art6"]
+    expected_answer_contains: "R$ 2 milhões"
+    metadata:
+      source: "Resolução CMN 4.945"
+      topic: "Cooperativas de crédito - capital mínimo"
+      difficulty: "fácil"
+
+  - id: "bacen_018"
+    question: "Quais operações as Sociedades de Crédito Direto (SCD) podem realizar segundo Resolução CMN 4.994?"
+    expected_chunks: ["chunk_cmn4994_art4", "chunk_cmn4994_art5"]
+    expected_answer_contains: "operações de crédito com recursos próprios"
+    metadata:
+      source: "Resolução CMN 4.994"
+      topic: "SCD - operações permitidas"
+      difficulty: "médio"
+
+  - id: "bacen_019"
+    question: "Como a Resolução CVM 175 classifica os fundos de investimento quanto ao público-alvo?"
+    expected_chunks: ["chunk_cvm175_art12", "chunk_cvm175_art13"]
+    expected_answer_contains: "investidores qualificados, investidores profissionais, público geral"
+    metadata:
+      source: "Resolução CVM 175"
+      topic: "Fundos de investimento - classificação por público"
+      difficulty: "médio"
+
+  - id: "bacen_020"
+    question: "Quais são os requisitos de solvência para sociedades seguradoras segundo Resolução CNSP 432?"
+    expected_chunks: ["chunk_cnsp432_art8", "chunk_cnsp432_art9"]
+    expected_answer_contains: "Capital Base ajustado não inferior ao Capital de Risco"
+    metadata:
+      source: "Resolução CNSP 432"
+      topic: "Seguros - requisitos de solvência"
+      difficulty: "difícil"
+
+  - id: "bacen_021"
+    question: "Qual o prazo para as instituições reportarem incidentes de segurança cibernética ao Banco Central?"
+    expected_chunks: ["chunk_cb3980_art10", "chunk_com35000_art7"]
+    expected_answer_contains: "24 horas para incidentes graves"
+    metadata:
+      source: "Circular BACEN 3.980 / Comunicado BACEN 35.000"
+      topic: "Segurança cibernética - reporte de incidentes"
+      difficulty: "médio"
+
+  - id: "bacen_022"
+    question: "Como a Resolução CMN 4.557 trata a exposição a partes relacionadas?"
+    expected_chunks: ["chunk_cmn4557_art18", "chunk_cmn4557_art19"]
+    expected_answer_contains: "limite de 10% do Patrimônio de Referência por contraparte"
+    metadata:
+      source: "Resolução CMN 4.557"
+      topic: "Exposição a partes relacionadas"
+      difficulty: "difícil"

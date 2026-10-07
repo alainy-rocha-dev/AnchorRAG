@@ -1,5 +1,13 @@
 {
   "version": 1,
   "allowLegacyEdits": true,
-  "allowedPaths": []
+  "allowedPaths": [
+    "src/anchor_rag/**",
+    "tests/**",
+    "scripts/**",
+    "docs/**",
+    "README.md",
+    "_reversa_sdd/**",
+    "_reversa_forward/**"
+  ]
 }

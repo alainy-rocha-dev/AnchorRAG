@@ -9,7 +9,7 @@ import asyncio
 import logging
 import time
 
-from anchor_rag.domain.models import Document, Chunk, IngestConfig
+from anchor_rag.domain.models import Document, Chunk, IngestConfig, IngestResult
 from anchor_rag.domain.exceptions import InvalidDocumentException, EmbeddingGenerationException, VectorStoreException
 from anchor_rag.ingestion.parser import PDFParser, ParsedPage, create_parser
 from anchor_rag.ingestion.chunker import Chunker, ChunkingResult
@@ -37,9 +37,11 @@ class IngestionStats:
 class IngestionResult:
     """Resultado da ingestão de um documento."""
 
-    document: Document
+    document: Optional[Document]
     chunks: List[Chunk]
     stats: IngestionStats
+    skipped: bool = False
+    skip_reason: Optional[str] = None
 
 
 class IngestionPipeline:
@@ -85,15 +87,43 @@ class IngestionPipeline:
         return results
 
     async def _ingest_single(self, path: Path) -> IngestionResult:
-        """Ingere um único arquivo."""
+        """
+        Ingere um único arquivo com deduplicação real por hash.
+
+        Fluxo:
+        1. Calcula SHA256 do arquivo (streaming, evita carregar tudo em memória)
+        2. Consulta vector_store.document_exists_by_hash() -> SELECT 1 FROM documents
+           onde content_hash = ?. Usa índice UNIQUE em documents.content_hash.
+        3. Se existe: retorna IngestionResult(skipped=True, skip_reason="duplicate_hash")
+           SEM chamar parser (economia de CPU/IO para PDFs grandes).
+        4. Caso contrário: parse -> sanitize -> chunk -> embed -> store normal.
+
+        Args:
+            path: Caminho do arquivo PDF.
+
+        Returns:
+            IngestionResult com document=None se skipped, senão Document + chunks + stats.
+        """
         stats = IngestionStats()
         doc_start = time.perf_counter()
 
         # 1. Hash do arquivo para dedup
         content_hash = sha256_file(str(path))
 
-        # Verificar se já existe (buscar por hash nos metadados)
-        # Nota: implementação simplificada - em produção usar índice de hash
+        # Verificar se já existe (consulta real por hash no banco)
+        await self.vector_store.init_db()
+        exists = await self.vector_store.document_exists_by_hash(content_hash)
+        if exists:
+            logger.info(f"Documento duplicado detectado (hash: {content_hash[:16]}...), pulando parse: {path}")
+            stats.duration_ms = (time.perf_counter() - doc_start) * 1000
+            stats.documents_skipped = 1
+            return IngestionResult(
+                document=None,
+                chunks=[],
+                stats=stats,
+                skipped=True,
+                skip_reason="duplicate_hash",
+            )
 
         # 2. Parse PDF
         pages = self.parser.parse(path)

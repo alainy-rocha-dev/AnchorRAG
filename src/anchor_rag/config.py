@@ -2,7 +2,7 @@
 
 from pathlib import Path
 from typing import Literal, Optional
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -59,6 +59,7 @@ class ChunkingConfig(BaseSettings):
     chunk_unit: Literal["chars", "tokens"] = "tokens"
     min_chunk_size: int = 50
     parser: Literal["pdfplumber", "pypdf"] = "pdfplumber"
+    structured: bool = False  # Chunking estruturado por artigo/inciso (normas jurídicas)
 
     model_config = SettingsConfigDict(env_prefix="CHUNKING_", extra="ignore")
 
@@ -81,6 +82,17 @@ class VectorStoreConfig(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="VECTOR_STORE_", extra="ignore")
 
 
+class RetrievalConfig(BaseSettings):
+    """Configuração de retrieval híbrido."""
+
+    mode: Literal["vector", "hybrid", "fts_only"] = "hybrid"
+    reranker_provider: Optional[Literal["huggingface", "ollama", "cohere"]] = None
+    reranker_model: str = "BAAI/bge-reranker-v2-m3"
+    reranker_batch_size: int = 32
+
+    model_config = SettingsConfigDict(env_prefix="RETRIEVAL_", extra="ignore")
+
+
 class LoggingConfig(BaseSettings):
     """Configuração de logging."""
 
@@ -101,6 +113,47 @@ class QueryLogConfig(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="QUERY_LOG_", extra="ignore")
 
 
+class EvaluationConfig(BaseSettings):
+    """Configuração de avaliação agentic (LLM-as-judge)."""
+
+    judge_provider: Literal["openai", "ollama", "anthropic"] = "openai"
+    judge_model: str = "gpt-4o-mini"
+    judge_temperature: float = 0.0
+    judge_max_tokens: int = 1024
+    thresholds: dict[str, float] = Field(default_factory=lambda: {
+        "faithfulness": 0.7,
+        "answer_relevancy": 0.7,
+        "context_precision": 0.7,
+        "context_recall": 0.7,
+    })
+    max_refine_iterations: int = 2
+    cost_budget_usd: float = 0.50
+    pricing_table: dict[str, dict[str, float]] = Field(default_factory=dict)
+
+    model_config = SettingsConfigDict(env_prefix="EVALUATION_", extra="ignore")
+
+    @field_validator("judge_temperature")
+    @classmethod
+    def validate_judge_temperature(cls, v: float) -> float:
+        if not 0 <= v <= 1:
+            raise ValueError("judge_temperature deve estar entre 0 e 1")
+        return v
+
+    @field_validator("max_refine_iterations")
+    @classmethod
+    def validate_max_refine(cls, v: int) -> int:
+        if v < 1 or v > 5:
+            raise ValueError("max_refine_iterations deve estar entre 1 e 5")
+        return v
+
+    @field_validator("cost_budget_usd")
+    @classmethod
+    def validate_budget(cls, v: float) -> float:
+        if v <= 0:
+            raise ValueError("cost_budget_usd deve ser maior que zero")
+        return v
+
+
 class AppConfig(BaseSettings):
     """Configuração principal da aplicação."""
 
@@ -108,8 +161,10 @@ class AppConfig(BaseSettings):
     llm: LLMConfig = Field(default_factory=LLMConfig)
     chunking: ChunkingConfig = Field(default_factory=ChunkingConfig)
     vector_store: VectorStoreConfig = Field(default_factory=VectorStoreConfig)
+    retrieval: RetrievalConfig = Field(default_factory=RetrievalConfig)
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
     query_log: QueryLogConfig = Field(default_factory=QueryLogConfig)
+    evaluation: EvaluationConfig = Field(default_factory=EvaluationConfig)
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -140,3 +195,37 @@ class AppConfig(BaseSettings):
             if env_key:
                 config_dict[section]["api_key"] = resolve(env_key)
         return self.model_validate(config_dict)
+
+    @property
+    def retrieval_mode(self) -> str:
+        return self.retrieval.mode
+
+    @property
+    def reranker_provider(self) -> Optional[str]:
+        return self.retrieval.reranker_provider
+
+    @property
+    def reranker_model(self) -> str:
+        return self.retrieval.reranker_model
+
+    @model_validator(mode="after")
+    def validate_embedding_dimensions(self) -> "AppConfig":
+        """
+        Valida consistência entre dimensions do embedding e vector store.
+
+        Executa no modelo validado (mode="after"), garantindo que ambos
+        os sub-configs já estão instanciados. Impede erro silencioso em runtime
+        quando embedding.dimensions != vector_store.embedding_dimensions,
+        que causaria falha na criação da virtual table sqlite-vec.
+
+        Raises:
+            ValueError: Se dimensions divergirem, com mensagem acionável.
+        """
+        emb_dims = self.embedding.dimensions
+        vs_dims = self.vector_store.embedding_dimensions
+        if emb_dims != vs_dims:
+            raise ValueError(
+                f"embedding.dimensions ({emb_dims}) != vector_store.embedding_dimensions ({vs_dims}). "
+                f"Ajuste config.yaml para que ambos tenham o mesmo valor."
+            )
+        return self

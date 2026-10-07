@@ -21,7 +21,7 @@ Responda cada pergunta abaixo. Suas respostas serão incorporadas às specs e a 
 - [ ] **B** — Alinhar spec ao código mas documentar ambos os modos
 - [ ] **C** — Outro: ___________
 
-**Sua resposta**: 
+**Sua resposta**: **A** — Manter código (512 tokens / 50 tokens) — atualizar spec
 
 ---
 
@@ -34,7 +34,7 @@ Responda cada pergunta abaixo. Suas respostas serão incorporadas às specs e a 
 - [ ] **B** — Com fonte+página inline — refatorar synthesizer
 - [ ] **C** — Ambos (numérico inline + lista detalhada rodapé) — atualizar ambos
 
-**Sua resposta**: 
+**Sua resposta**: **A** — Numérico `[N]` (atual) — atualizar spec
 
 ---
 
@@ -47,7 +47,7 @@ Responda cada pergunta abaixo. Suas respostas serão incorporadas às specs e a 
 - [ ] **B** — 0.40 (mais permissivo/recall) — alterar código
 - [ ] **C** — Configurável sem default hardcoded — remover das specs
 
-**Sua resposta**: 
+**Sua resposta**: **A** — 0.7 (atual, mais restritivo/precision) — atualizar specs
 
 ---
 
@@ -60,7 +60,7 @@ Responda cada pergunta abaixo. Suas respostas serão incorporadas às specs e a 
 - [ ] **B** — Manter abstrata (interface VectorStore) — mover detalhes para ADR-001
 - [ ] **C** — Documentar ambos: interface + implementação default
 
-**Sua resposta**: 
+**Sua resposta**: **A** — Refletir implementação real (sqlite-vec) — atualizar spec
 
 ---
 
@@ -73,7 +73,7 @@ Responda cada pergunta abaixo. Suas respostas serão incorporadas às specs e a 
 - [ ] **B** — Validar no `RAGPipeline.initialize()` — log warning
 - [ ] **C** — Documentar como pré-requisito operacional — não bloquear
 
-**Sua resposta**: 
+**Sua resposta**: **A** — Adicionar `@model_validator(mode="after")` no `AppConfig` — falhar rápido
 
 ---
 
@@ -86,7 +86,7 @@ Responda cada pergunta abaixo. Suas respostas serão incorporadas às specs e a 
 - [ ] **B** — Não — manter simplificado, aceitar re-ingestão ocasional
 - [ ] **C** — Adicionar flag `force_reingest` para controle manual (já existe em IngestConfig)
 
-**Sua resposta**: 
+**Sua resposta**: **A** — Sim — implementar índice de hash em `documents` table query antes de parse
 
 ---
 
@@ -94,12 +94,12 @@ Responda cada pergunta abaixo. Suas respostas serão incorporadas às specs e a 
 
 | Pergunta | Opção Escolhida |
 |----------|-----------------|
-| P1 (Chunking) |  |
-| P2 (Citação) |  |
-| P3 (Threshold) |  |
-| P4 (Vector Store) |  |
-| P5 (Dimensions) |  |
-| P6 (Dedup) |  |
+| P1 (Chunking) | A |
+| P2 (Citação) | A |
+| P3 (Threshold) | A |
+| P4 (Vector Store) | A |
+| P5 (Dimensions) | A |
+| P6 (Dedup) | A |
 
 ---
 

@@ -1,0 +1,47 @@
+# Context Precision Judge Prompt
+
+Você é um avaliador especializado em medir a **precisão do contexto** (context precision).
+
+## Tarefa
+Dada uma **pergunta**, uma lista de **contextos recuperados** (ordenados por relevância) e uma **resposta**, avalie se os trechos relevantes aparecem no topo da lista.
+- Score 1.0 = Todos os trechos necessários para responder estão no topo (posições 1-3)
+- Score 0.5 = Alguns trechos relevantes estão bem posicionados, outros não
+- Score 0.0 = Trechos relevantes estão no final ou ausentes
+
+## Formato de Saída
+```
+SCORE: <0.0-1.0>
+REASONING: <explicação concisa>
+```
+
+## Exemplos (Few-shot)
+
+### Exemplo 1 - Alta Precisão (Score: 1.0)
+**Pergunta:** Qual a taxa Selic atual?
+**Contextos:**
+1. "Copom manteve Selic em 13,75% ao ano."
+2. "Inflação acumulada em 12 meses é 4,62%."
+3. "PIB cresceu 0,9% no trimestre."
+**Resposta:** A taxa Selic atual é 13,75% ao ano. [1]
+**SCORE:** 1.0
+**REASONING:** O contexto necessário está na posição 1 (topo).
+
+### Exemplo 2 - Baixa Precisão (Score: 0.2)
+**Pergunta:** Qual a taxa Selic atual?
+**Contextos:**
+1. "PIB cresceu 0,9% no trimestre."
+2. "Inflação acumulada em 12 meses é 4,62%."
+3. "Copom manteve Selic em 13,75% ao ano."
+**Resposta:** A taxa Selic atual é 13,75% ao ano. [3]
+**SCORE:** 0.2
+**REASONING:** O contexto relevante está na posição 3 (final), prejudicando precisão.
+
+### Exemplo 3 - Precisão Média (Score: 0.6)
+**Pergunta:** Qual a taxa Selic e a inflação?
+**Contextos:**
+1. "Copom manteve Selic em 13,75% ao ano."
+2. "PIB cresceu 0,9% no trimestre."
+3. "Inflação acumulada em 12 meses é 4,62%."
+**Resposta:** A Selic é 13,75% e a inflação 4,62%. [1, 3]
+**SCORE:** 0.6
+**REASONING:** Selic no topo (bom), inflação na posição 3 (regular).

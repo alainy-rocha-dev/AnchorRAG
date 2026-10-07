@@ -1,7 +1,7 @@
 """Implementação do Vector Store usando SQLite com sqlite-vec."""
 
 from __future__ import annotations
-from typing import List, Optional
+from typing import List, Optional, Union
 from uuid import UUID
 import sqlite3
 import sqlite_vec
@@ -52,17 +52,11 @@ class SQLiteVecStore(VectorStore):
             )
         """)
 
-        # Tabela de chunks com virtual table para vetores
-        cursor.execute(f"""
-            CREATE VIRTUAL TABLE IF NOT EXISTS chunks_vec USING vec0(
-                embedding float[{self.embedding_dimensions}]
-            )
-        """)
-
-        # Tabela de metadados dos chunks
+        # Tabela de chunks com ID inteiro para vec0
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS chunks (
-                id TEXT PRIMARY KEY,
+                rowid INTEGER PRIMARY KEY AUTOINCREMENT,
+                id TEXT NOT NULL UNIQUE,
                 document_id TEXT NOT NULL,
                 content TEXT NOT NULL,
                 chunk_index INTEGER NOT NULL,
@@ -75,9 +69,19 @@ class SQLiteVecStore(VectorStore):
             )
         """)
 
+        # Tabela de chunks com virtual table para vetores (usa rowid inteiro)
+        cursor.execute(f"""
+            CREATE VIRTUAL TABLE IF NOT EXISTS chunks_vec USING vec0(
+                embedding float[{self.embedding_dimensions}]
+            )
+        """)
+
         # Índices
         cursor.execute("""
             CREATE INDEX IF NOT EXISTS idx_chunks_document_id ON chunks(document_id)
+        """)
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_chunks_id ON chunks(id)
         """)
         cursor.execute("""
             CREATE INDEX IF NOT EXISTS idx_documents_hash ON documents(content_hash)
@@ -108,8 +112,44 @@ class SQLiteVecStore(VectorStore):
             CREATE INDEX IF NOT EXISTS idx_query_log_timestamp ON query_log(timestamp)
         """)
 
+        # Tabela de eval_log para avaliação agentic
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS eval_log (
+                id TEXT PRIMARY KEY,
+                eval_run_id TEXT NOT NULL,
+                timestamp TIMESTAMP NOT NULL,
+                query TEXT NOT NULL,
+                judge_provider TEXT NOT NULL,
+                judge_model TEXT NOT NULL,
+                faithfulness REAL,
+                answer_relevancy REAL,
+                context_precision REAL,
+                context_recall REAL,
+                tokens_input INTEGER,
+                tokens_output INTEGER,
+                estimated_cost_usd REAL,
+                iterations INTEGER DEFAULT 1,
+                config_hash TEXT NOT NULL,
+                dataset_hash TEXT NOT NULL
+            )
+        """)
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_eval_log_run ON eval_log(eval_run_id)
+        """)
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_eval_log_timestamp ON eval_log(timestamp)
+        """)
+
         conn.commit()
         logger.info(f"SQLiteVecStore inicializado: {self.db_path}")
+
+    async def init_fts(self) -> None:
+        """Inicializa tabela FTS5 para busca híbrida (chama FTS5Store.init_fts)."""
+        from anchor_rag.retrieval.fts import FTS5Store
+        fts = FTS5Store(str(self.db_path))
+        await fts.init_fts()
+        await fts.close()
+        logger.info("FTS5 inicializado no SQLiteVecStore")
 
     def _serialize_embedding(self, embedding: List[float]) -> bytes:
         """Serializa embedding para blob sqlite-vec."""
@@ -148,7 +188,7 @@ class SQLiteVecStore(VectorStore):
                     ),
                 )
 
-                # Insere chunk metadata
+                # Insere chunk metadata (rowid é auto-increment)
                 cursor.execute(
                     """
                     INSERT INTO chunks (id, document_id, content, chunk_index, page_number,
@@ -168,12 +208,15 @@ class SQLiteVecStore(VectorStore):
                     ),
                 )
 
-                # Insere embedding na virtual table
+                # Obtém o rowid gerado
+                chunk_rowid = cursor.lastrowid
+
+                # Insere embedding na virtual table usando rowid inteiro
                 if chunk.embedding:
                     emb_blob = self._serialize_embedding(chunk.embedding)
                     cursor.execute(
                         "INSERT INTO chunks_vec (rowid, embedding) VALUES (?, ?)",
-                        (str(chunk.id), emb_blob),
+                        (chunk_rowid, emb_blob),
                     )
 
                 inserted += 1
@@ -209,7 +252,7 @@ class SQLiteVecStore(VectorStore):
                 c.start_char, c.end_char, c.token_count, c.metadata,
                 vec_distance_cosine(chunks_vec.embedding, ?) as distance
             FROM chunks c
-            JOIN chunks_vec ON c.id = chunks_vec.rowid
+            JOIN chunks_vec ON c.rowid = chunks_vec.rowid
             WHERE distance <= ?
             ORDER BY distance ASC
             LIMIT ?
@@ -280,19 +323,19 @@ class SQLiteVecStore(VectorStore):
         conn = self._get_conn()
         cursor = conn.cursor()
 
-        # Primeiro pega os IDs dos chunks para remover da virtual table
+        # Primeiro pega os rowids dos chunks para remover da virtual table
         cursor.execute(
-            "SELECT id FROM chunks WHERE document_id = ?",
+            "SELECT rowid FROM chunks WHERE document_id = ?",
             (str(document_id),),
         )
-        chunk_ids = [row["id"] for row in cursor.fetchall()]
+        chunk_rowids = [row["rowid"] for row in cursor.fetchall()]
 
         # Remove da virtual table
-        if chunk_ids:
-            placeholders = ",".join("?" * len(chunk_ids))
+        if chunk_rowids:
+            placeholders = ",".join("?" * len(chunk_rowids))
             cursor.execute(
                 f"DELETE FROM chunks_vec WHERE rowid IN ({placeholders})",
-                chunk_ids,
+                chunk_rowids,
             )
 
         # Remove chunks (CASCADE remove documento se não houver mais chunks)
@@ -308,7 +351,7 @@ class SQLiteVecStore(VectorStore):
         )
 
         conn.commit()
-        return len(chunk_ids)
+        return len(chunk_rowids)
 
     async def get_stats(self) -> dict:
         """Estatísticas do store."""
@@ -327,6 +370,18 @@ class SQLiteVecStore(VectorStore):
             "embedding_dimensions": self.embedding_dimensions,
             "db_path": str(self.db_path),
         }
+
+    async def document_exists_by_hash(self, content_hash: str) -> bool:
+        """Verifica se já existe um documento com o content_hash dado."""
+        conn = self._get_conn()
+        cursor = conn.cursor()
+
+        cursor.execute(
+            "SELECT 1 FROM documents WHERE content_hash = ? LIMIT 1",
+            (content_hash,),
+        )
+        row = cursor.fetchone()
+        return row is not None
 
     async def close(self):
         """Fecha conexão."""
@@ -421,4 +476,161 @@ class SQLiteVecStore(VectorStore):
             "total_queries": total,
             "avg_latency_ms": round(avg_latency, 2),
             "failed_queries": failed,
+        }
+
+    # Eval Log methods
+    async def log_eval(
+        self,
+        eval_id: str,
+        eval_run_id: str,
+        timestamp: str,
+        query: str,
+        judge_provider: str,
+        judge_model: str,
+        faithfulness: Optional[float],
+        answer_relevancy: Optional[float],
+        context_precision: Optional[float],
+        context_recall: Optional[float],
+        tokens_input: Optional[int],
+        tokens_output: Optional[int],
+        estimated_cost_usd: Optional[float],
+        iterations: int,
+        config_hash: str,
+        dataset_hash: str,
+    ) -> None:
+        """Registra avaliação no eval_log."""
+        conn = self._get_conn()
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            INSERT INTO eval_log (
+                id, eval_run_id, timestamp, query, judge_provider, judge_model,
+                faithfulness, answer_relevancy, context_precision, context_recall,
+                tokens_input, tokens_output, estimated_cost_usd, iterations,
+                config_hash, dataset_hash
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                eval_id,
+                eval_run_id,
+                timestamp,
+                query,
+                judge_provider,
+                judge_model,
+                faithfulness,
+                answer_relevancy,
+                context_precision,
+                context_recall,
+                tokens_input,
+                tokens_output,
+                estimated_cost_usd,
+                iterations,
+                config_hash,
+                dataset_hash,
+            ),
+        )
+        conn.commit()
+
+    async def get_eval_logs(
+        self,
+        eval_run_id: Optional[str] = None,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> List[dict]:
+        """Recupera logs de avaliação."""
+        conn = self._get_conn()
+        cursor = conn.cursor()
+
+        if eval_run_id:
+            cursor.execute(
+                """
+                SELECT * FROM eval_log
+                WHERE eval_run_id = ?
+                ORDER BY timestamp DESC
+                LIMIT ? OFFSET ?
+                """,
+                (eval_run_id, limit, offset),
+            )
+        else:
+            cursor.execute(
+                """
+                SELECT * FROM eval_log
+                ORDER BY timestamp DESC
+                LIMIT ? OFFSET ?
+                """,
+                (limit, offset),
+            )
+        rows = cursor.fetchall()
+        return [dict(row) for row in rows]
+
+    async def get_eval_stats(self, eval_run_id: str) -> dict:
+        """Estatísticas agregadas de um eval run."""
+        conn = self._get_conn()
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT
+                COUNT(*) as total,
+                AVG(faithfulness) as avg_faithfulness,
+                AVG(answer_relevancy) as avg_relevancy,
+                AVG(context_precision) as avg_precision,
+                AVG(context_recall) as avg_recall,
+                SUM(tokens_input) as total_tokens_in,
+                SUM(tokens_output) as total_tokens_out,
+                SUM(estimated_cost_usd) as total_cost
+            FROM eval_log
+            WHERE eval_run_id = ?
+            """,
+            (eval_run_id,),
+        )
+        row = cursor.fetchone()
+        if not row or row["total"] == 0:
+            return {"total": 0}
+
+        return {
+            "total_queries": row["total"],
+            "avg_faithfulness": round(row["avg_faithfulness"] or 0, 4),
+            "avg_answer_relevancy": round(row["avg_relevancy"] or 0, 4),
+            "avg_context_precision": round(row["avg_precision"] or 0, 4),
+            "avg_context_recall": round(row["avg_recall"] or 0, 4),
+            "total_tokens_input": row["total_tokens_in"] or 0,
+            "total_tokens_output": row["total_tokens_out"] or 0,
+            "total_estimated_cost_usd": round(row["total_cost"] or 0, 6),
+        }
+
+    async def get_baseline_metrics(self, dataset_hash: str, config_hash: str) -> Optional[dict]:
+        """Busca baseline mais recente para dataset+config."""
+        conn = self._get_conn()
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT eval_run_id, timestamp,
+                AVG(faithfulness) as faithfulness,
+                AVG(answer_relevancy) as answer_relevancy,
+                AVG(context_precision) as context_precision,
+                AVG(context_recall) as context_recall
+            FROM eval_log
+            WHERE dataset_hash = ? AND config_hash = ?
+            GROUP BY eval_run_id
+            ORDER BY timestamp DESC
+            LIMIT 1
+            """,
+            (dataset_hash, config_hash),
+        )
+        row = cursor.fetchone()
+        if not row:
+            return None
+
+        return {
+            "eval_run_id": row["eval_run_id"],
+            "timestamp": row["timestamp"],
+            "metrics": {
+                "faithfulness": round(row["faithfulness"] or 0, 4),
+                "answer_relevancy": round(row["answer_relevancy"] or 0, 4),
+                "context_precision": round(row["context_precision"] or 0, 4),
+                "context_recall": round(row["context_recall"] or 0, 4),
+            },
         }

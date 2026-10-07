@@ -66,3 +66,8 @@ class VectorStore(ABC):
     async def get_stats(self) -> dict:
         """Estatísticas do store: total_chunks, total_documents, etc."""
         pass
+
+    @abstractmethod
+    async def document_exists_by_hash(self, content_hash: str) -> bool:
+        """Verifica se já existe um documento com o content_hash dado."""
+        pass

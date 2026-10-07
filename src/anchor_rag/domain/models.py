@@ -87,3 +87,67 @@ class QueryConfig(BaseModel):
     temperature: Optional[float] = None
     no_synthesis: bool = False
     format: Literal["text", "json"] = "text"
+
+
+class IngestResult(BaseModel):
+    """Resultado da ingestão de um documento."""
+
+    document: Optional[Document] = None
+    chunks: List[Chunk] = Field(default_factory=list)
+    stats: Optional[Any] = None
+    skipped: bool = False
+    skip_reason: Optional[str] = None
+
+
+class EvalMetrics(BaseModel):
+    """Métricas de avaliação RAG (estendido para agentic)."""
+
+    recall_at_k: float
+    mrr: float
+    hallucination_rate: float
+    citation_coverage: float
+    total_queries: int
+    successful_queries: int
+    # NOVOS (agentic):
+    faithfulness: float = 0.0
+    answer_relevancy: float = 0.0
+    context_precision: float = 0.0
+    context_recall: float = 0.0
+    # Por query (opcional, para relatório detalhado)
+    per_query: List[Dict[str, Any]] = Field(default_factory=list)
+
+
+class ComparativeMetrics(BaseModel):
+    """Resultado de comparação estatística entre provedores."""
+
+    provider_a: str
+    provider_b: str
+    metric: str
+    mean_a: float
+    mean_b: float
+    mean_diff: float
+    p_value: float
+    ci_95_lower: float
+    ci_95_upper: float
+    significant: bool  # p < 0.05
+
+
+class DriftResult(BaseModel):
+    """Resultado de detecção de drift."""
+
+    has_drift: bool
+    metric_diffs: Dict[str, float]  # relative diff (current - baseline) / baseline
+    threshold: float
+    baseline_metrics: Dict[str, float]
+    current_metrics: Dict[str, float]
+    exit_code: int  # 0=ok, 1=drift, 2=error
+
+
+class CostEstimate(BaseModel):
+    """Estimativa de custo de avaliação."""
+
+    total_tokens_input: int
+    total_tokens_output: int
+    estimated_cost_usd: float
+    per_query: List[Dict[str, Any]]
+    budget_exceeded: bool

@@ -98,7 +98,7 @@ installed = [
 
 [analysis]
 answer_mode = "chat"
-doc_level = "completo"
+doc_level = "essencial"
 
 # Organização das specs geradas pelos agentes.
 # Esta seção é preenchida pelo Reversa após o Scout sugerir uma estrutura

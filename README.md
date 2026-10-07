@@ -64,7 +64,7 @@ anchor-rag eval
 ```yaml
 # config.yaml
 embedding:
-  provider: "open          # openai, ollama, huggingface
+  provider: "openai"       # openai, ollama, huggingface
   model: "text-embedding-3-small"
   dimensions: 1536
   batch_size: 100

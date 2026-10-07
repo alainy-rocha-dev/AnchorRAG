@@ -1,42 +1,50 @@
 # Adendo: 001-pipeline-rag-hag2
 
-**Identificador:** `001-pipeline-rag-hag2`
-**Feature:** Pipeline RAG inicial (Ingestão → Chunking → Embeddings → Busca Vetorial → Síntese com Citação)
-**Data:** 2026-09-22
-**Cenário:** greenfield (âncora: `_reversa_sdd/prd.md` + specs em `_reversa_sdd/sdd/`)
+> Identificador: `001-pipeline-rag-hag2`
+> Data: `2026-09-30`
+> Cenário: **greenfield** (âncora: `_reversa_sdd/prd.md` + specs em `_reversa_sdd/sdd/`)
+
+---
 
 ## Vigência
 
-Vigente desde 2026-09-22.
+Vigente desde 2026-09-30.
+
+---
 
 ## Resumo da entrega
 
-Implementação completa do pipeline RAG para consulta de documentos técnicos PDF privados com busca semântica por similaridade de cosseno, resposta ancorada com citações, métricas de latência e resiliência. Entregue em 42 ações (42 concluídas, 0 pendentes), cobrindo todas as 3 specs SDD: `document-ingestion-chunking.md`, `vector-store-similarity-search.md`, `rag-synthesis-citation-engine.md`.
+Implementação do pipeline RAG completo (ingestão → chunking → embeddings → busca vetorial → síntese com citação) para consulta de documentos técnicos PDF privados. Entrega busca semântica por similaridade de cosseno com resposta ancorada, métricas de relevância e latência < 2s. Resolve a ineficiência da busca por palavra-chave e o risco de alucinação de LLMs sem ancoragem em acervos corporativos.
+
+**Ações concluídas:** 46/46 (100%)
+
+---
 
 ## Impacto por artefato da extração
 
 | Artefato | Seção | Tipo de impacto | Delta |
-|----------|-------|----------------|-------|
-| `_reversa_sdd/prd.md` | 4 (Escopo) | componente-novo | Pipeline RAG completo implementado: ingestão PDF multi-parser, chunking parametrizado, embeddings multi-provedor, vector store sqlite-vec, síntese ancorada |
-| `_reversa_sdd/prd.md` | 3 (Métricas) | componente-novo | Métricas instrumentadas: latência breakdown (embed/search/llm/total), scores cosseno, contagem chunks, health checks |
-| `_reversa_sdd/prd.md` | 6 (Restrições) | componente-novo | README com matemática cosseno transparente, tabela comparativa embeddings, quickstart, troubleshooting |
-| `_reversa_sdd/sdd/document-ingestion-chunking.md` | RF-01 a RF-05 | componente-novo | Parser (PdfPlumberParser + PyPDFParser fallback) com page_number; Chunker tokens/chars + overlap exato; Sanitização control chars + hifenização; Metadados chunk_id, source_file, page_number, char_count; Dedup SHA256 |
-| `_reversa_sdd/sdd/vector-store-similarity-search.md` | RF-06 a RF-12 | componente-novo | EmbeddingProvider ABC + 3 implementações (OpenAI/Ollama/HF) com retry/health_check; VectorStore ABC + SQLiteVecStore (sqlite-vec, virtual table chunks_vec, busca cosseno via vec_distance_cosine); Factories |
-| `_reversa_sdd/sdd/rag-synthesis-citation-engine.md` | RF-01 a RF-05 | componente-novo | LLMProvider ABC + 3 implementações (OpenAI/Ollama/Anthropic) streaming + tokens; Prompt ancoragem estrita + few-shot defense (3 exemplos injection); RAGSynthesizer extrai citações [N]; latency breakdown |
-| `_reversa_sdd/sdd/rag-synthesis-citation-engine.md` | RF-03 (score < 0.40) | componente-novo | Tratamento informação ausente: retorna mensagem padronizada sem invocar LLM |
-| `_reversa_sdd/prd.md` | 7 (Critérios) | componente-novo | CLI Typer: `ingest` (recursive, force, chunk options, progress), `query` (top_k, threshold, llm options, citations table), `eval` (health checks, stats); Logging JSON + request_id; QueryLog opcional SQLite |
-| `_reversa_sdd/prd.md` | 5 (Não-objetivos) | componente-novo | Respeitados: sem multi-tenant/RBAC, sem GUI, sem formatos além PDF/texto; CI configurado |
+|----------|-------|-----------------|-------|
+| `prd.md` | 4. Escopo | componente-novo | Pipeline RAG completo implementado: ingestão PDF, chunking com overlap, embeddings (OpenAI/Ollama/HF), vector store (sqlite-vec), busca cosseno, síntese com citação |
+| `prd.md` | 3. Métricas | componente-novo | Latência < 2s validada; Recall@k/MRR ≥ 85% pronto para medição via `cli_eval.py` |
+| `sdd/document-ingestion-chunking.md` | RF-01 a RF-05 | componente-novo | Parser PDF página a página (pdfplumber/PyPDF); chunking tokens/chars configurável; sanitização; dedup SHA256; batch processing |
+| `sdd/vector-store-similarity-search.md` | RF-06 a RF-12 | componente-novo | EmbeddingProvider ABC + 3 provedores; VectorStore ABC + SQLiteVecStore; factory; busca cosseno nativa sqlite-vec |
+| `sdd/rag-synthesis-citation-engine.md` | RF-13 a RF-21 | componente-novo | LLMProvider ABC + 3 provedores; prompt ancoragem estrita; few-shot defense; citações `[N]`; latency breakdown; RAGPipeline wiring |
+| `sdd/document-ingestion-chunking.md` | 61 (Esclarecimento) | componente-novo | `chunk_unit` configurável `chars` | `tokens` (default: `tokens` no código vs `chars` na spec original) |
+| `sdd/vector-store-similarity-search.md` | 62 (Esclarecimento) | componente-novo | Vector Store: SQLite + sqlite-vec (virtual table `chunks_vec`) |
+| `sdd/rag-synthesis-citation-engine.md` | 61 (Esclarecimento) | componente-novo | Citação formato `[N]` numérico inline (não `[arquivo - Pág. N]` como na spec original) |
+| `README.md` | — | componente-novo | Documentação completa: arquitetura, matemática cosseno, comparativo embeddings, quickstart, config, troubleshooting |
+| `tests/` | — | componente-novo | 26 testes unitários (contratos ABC, modelos, config, utils) + 4 integração (ingestion, query, e2e, prompt injection) + CI GitHub Actions |
+
+---
 
 ## Regras sob vigilância
 
-Watch items criados (sem peso de regressão — greenfield). Migrarão para watch principal na próxima re-extração `/reversa` quando confirmados como 🟢:
+| Watch ID | Apontador |
+|----------|-----------|
+| *(greenfield - watch principal vazio)* | Observações O001-O026 em `_reversa_forward/001-pipeline-rag-hag2/regression-watch.md` |
+| — | Futura re-extração `/reversa` migrará RFs confirmados como 🟢 para watch principal W001+ |
 
-- O001–O005: `_reversa_sdd/sdd/document-ingestion-chunking.md` → `regression-watch.md` (RFs ingestion/chunking)
-- O006–O012: `_reversa_sdd/sdd/vector-store-similarity-search.md` → `regression-watch.md` (RFs embeddings/vector store)
-- O013–O021: `_reversa_sdd/sdd/rag-synthesis-citation-engine.md` → `regression-watch.md` (RFs síntese/citação)
-- O022–O026: Transversais (CLI, Logging, QueryLog, Testes, CI) → `regression-watch.md`
-
-Detalhes completos: `_reversa_forward/001-pipeline-rag-hag2/regression-watch.md`
+---
 
 ## Fontes
 
@@ -44,7 +52,6 @@ Detalhes completos: `_reversa_forward/001-pipeline-rag-hag2/regression-watch.md`
 - `_reversa_forward/001-pipeline-rag-hag2/legacy-impact.md`
 - `_reversa_forward/001-pipeline-rag-hag2/regression-watch.md`
 - `_reversa_forward/001-pipeline-rag-hag2/progress.jsonl`
-- `_reversa_sdd/prd.md`
-- `_reversa_sdd/sdd/document-ingestion-chunking.md`
-- `_reversa_sdd/sdd/vector-store-similarity-search.md`
-- `_reversa_sdd/sdd/rag-synthesis-citation-engine.md`
+- `_reversa_forward/001-pipeline-rag-hag2/actions.md`
+
+---

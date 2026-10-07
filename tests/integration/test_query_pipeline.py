@@ -35,6 +35,7 @@ class MockEmbedder(EmbeddingProvider):
 class MockVectorStore(VectorStore):
     def __init__(self, chunks=None):
         self._chunks = chunks or []
+        self.hashes = set()
 
     async def init_db(self):
         pass
@@ -54,6 +55,9 @@ class MockVectorStore(VectorStore):
 
     async def get_stats(self):
         return {"total_chunks": len(self._chunks)}
+
+    async def document_exists_by_hash(self, content_hash):
+        return content_hash in self.hashes
 
 
 class MockLLM(LLMProvider):

@@ -1,10 +1,4 @@
 {
-  "schema-version": 1,
-  "feature-dir": "_reversa_forward/001-pipeline-rag-hag2",
-  "feature-id": "001",
-  "short-name": "pipeline-rag-hag2",
-  "started-at": "2026-09-22T17:38:00-03:00",
-  "current-stage": "to-do",
-  "stages-completed": ["requirements", "plan"],
+  "feature-dir": "_reversa_forward/003-agentic-rag-evaluation",
   "paused-features": []
 }
