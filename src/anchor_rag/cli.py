@@ -134,7 +134,7 @@ def eval_v1(
     db: Path = typer.Option(Path("data/bcb.db"), "--db", help="Base carregada com ingest-chunks"),
     corpus: Path = typer.Option(Path("corpus/chunks.jsonl"), "--corpus", help="Corpus esperado na base (conferido por hash)"),
     k: int = typer.Option(5, "--k", help="Chunks recuperados por pergunta"),
-    retrieval: str = typer.Option("vector", "--retrieval", help="vector, fts ou hybrid (RRF vetorial + BM25)"),
+    retrieval: str = typer.Option("hybrid", "--retrieval", help="hybrid (RRF vetorial + BM25, padrão), vector ou fts"),
     no_synthesis: bool = typer.Option(False, "--no-synthesis", help="Só recuperação (rápido, sem LLM)"),
     limit: Optional[int] = typer.Option(None, "--limit", help="Avalia só os N primeiros itens (teste rápido)"),
     categoria: Optional[str] = typer.Option(None, "--categoria", help="Filtra por subtipo (ex.: injecao)"),
@@ -251,7 +251,7 @@ def eval_v1(
         itens=[r.__dict__ for r in resultados],
     )
     out.mkdir(parents=True, exist_ok=True)
-    sufixo = ("" if retrieval == "vector" else f"_{retrieval}") + ("_retrieval" if no_synthesis else "")
+    sufixo = f"_{retrieval}" + ("_retrieval" if no_synthesis else "")
     destino = out / f"v1_{inicio.strftime('%Y%m%d-%H%M%S')}{sufixo}.json"
     destino.write_text(relatorio.to_json(), encoding="utf-8")
 
