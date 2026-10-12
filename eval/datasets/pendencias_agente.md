@@ -1,0 +1,11 @@
+﻿- Detector marcou 'manter' como ausente em res_cmn_4968:art2, mas a palavra esta no trecho. Verificar caracteres invisiveis (u00a0, u200b, u00ad). Normalizar no ingest e no detector, com teste usando esse caso.
+- Titulos de capitulo/secao no fim de um chunk pertencem ao artigo seguinte (ex.: res_cmn_4968:art1, res_cmn_4966:art7). Mover para o inicio do chunk seguinte no ingest.
+- Confirmar que toda leitura e gravacao de arquivo no build_dataset.py usa encoding='utf-8' (temas.json em especial).
+- Opcao --pares no candidates multi_trecho, lendo pares escolhidos de um arquivo (ver ideias_multi_trecho.md).
+- Adaptador do eval: resposta_ouro vai para os metadados do juiz; expected_answer_contains fica vazio.
+- O gerador atribuiu normas do CMN a instituicoes de pagamento, que elas excluem (ex.: res_cmn_4949:art8). Incluir no temas.json/prompt a quem cada norma NAO se aplica, e proibir o gerador de nomear um tipo de instituicao que nao esteja no tema ou no trecho.
+- PRIORIDADE: titulo no fim do chunk induziu pergunta errada em res_cmn_4860:art3 (pergunta sobre 'organizacao' a partir do titulo do capitulo seguinte).
+- PRIORIDADE MAXIMA: res_bcb_80:art1 perdeu texto vigente no ingest ('funcionamento por parte dessas instituicoes e dispoe sobre a prestacao de servicos de' sumiu). Comparar com o HTML em corpus/raw/res_bcb_80.html e descobrir qual limpeza (riscado, notas de alteracao, revogados) apagou texto vigente. Verificar o corpus inteiro: comparar texto dos chunks com o texto vigente do HTML.
+- Gerador respondeu em ingles (a769443d1c). No candidates, descartar respostas que nao estejam em portugues.
+- dividir_longo cortou no meio de uma alinea (res_cmn_4968:art5-p3 termina em 'h) ... fora do seu controle,'). Cortar so em fronteira de inciso ou alinea completa.
+- Gerador tambem respondeu com texto em chines (1cca91014e). No candidates, descartar resposta com caracteres fora do alfabeto latino ou que nao pareca portugues, e gerar de novo.
