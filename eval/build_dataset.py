@@ -564,6 +564,16 @@ def overlap_lexical(pergunta: str, chunks: list[dict]) -> tuple[float, str]:
     return round(melhor, 2), cid
 
 
+def overlap_top(pergunta: str, chunks: list[dict], k: int = 3) -> list[tuple[float, str]]:
+    """Os k chunks com maior fracao de termos da pergunta (para o revisor conferir)."""
+    q = {t for t in norm(pergunta).split() if len(t) > 3}
+    if not q:
+        return []
+    notas = [(len(q & set(norm(c["texto"]).split())) / len(q), c["chunk_id"]) for c in chunks]
+    notas.sort(key=lambda x: (-x[0], x[1]))
+    return [(round(s, 2), cid) for s, cid in notas[:k]]
+
+
 # Palavras vazias em português para filtro de termos de conteúdo
 PALAVRAS_VAZIAS = {
     # Pronomes e demonstrativos
@@ -1024,10 +1034,12 @@ def cmd_candidates(a):
             tema_c = temas_map.get(c["norma"], c["norma"])
             r = llm_json(P_SEM.format(tema=tema_c, cid=c["chunk_id"], texto=c["texto"]))
             if r and r.get("pergunta"):
-                ov, cid = overlap_lexical(r["pergunta"], chunks)
+                top = overlap_top(r["pergunta"], chunks)
+                ov, cid = top[0] if top else (0.0, "")
                 # ov alto = o corpus talvez responda; o revisor precisa checar
                 salvar(r["pergunta"], "RECUSA", [],
-                       {"origem_chunk": c["chunk_id"], "overlap_max": ov, "overlap_chunk": cid},
+                       {"origem_chunk": c["chunk_id"], "overlap_max": ov, "overlap_chunk": cid,
+                        "overlap_top": [[s_, c_] for s_, c_ in top]},
                        usa=[c["chunk_id"]])
 
     elif cat == "adversarial":
@@ -1098,8 +1110,21 @@ def cmd_review(a):
                 texto = texto.replace('\u200b', '')  # remove zero-width spaces
             print(f"\n--- {cid} ---\n{texto}")
         if it["categoria"] == "sem_resposta":
-            print(f"\n!! overlap lexical máx. = {it.get('overlap_max')} "
-                  f"({it.get('overlap_chunk')}). Se > 0.6, busque no corpus se a resposta existe.")
+            # Mostra o trecho que inspirou a pergunta e os mais parecidos do corpus inteiro:
+            # a pergunta so serve se NENHUM deles responder.
+            vistos = []
+            if it.get("origem_chunk"):
+                vistos.append(("origem da pergunta", it["origem_chunk"]))
+            top = it.get("overlap_top") or ([[it.get("overlap_max"), it.get("overlap_chunk")]]
+                                            if it.get("overlap_chunk") else [])
+            for nota, cid in top:
+                if cid and cid not in [v[1] for v in vistos]:
+                    vistos.append((f"parecido com a pergunta, overlap {nota}", cid))
+            for rotulo, cid in vistos:
+                texto = chunks.get(cid, {}).get("texto", "(chunk não encontrado)")
+                print(f"\n--- {cid} ({rotulo}) ---\n{texto}")
+            print(f"\n!! overlap lexical máx. = {it.get('overlap_max')}. Confira se ALGUM trecho acima "
+                  "(ou outro do corpus) responde a pergunta. Se responder, rejeite.")
         if "termos_fora_resposta" in it:
             termos_resp = it.get("termos_fora_resposta") or []
             if termos_resp:

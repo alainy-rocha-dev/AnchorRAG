@@ -134,3 +134,34 @@ def test_review_mostra_texto_completo(monkeypatch, tmp_path, capsys):
                         v1=str(tmp_path / "v1.jsonl"), rej=str(tmp_path / "r.jsonl"))
     bd.cmd_review(a)
     assert "FIM_DO_TEXTO" in capsys.readouterr().out
+
+
+def test_overlap_top_ordena_e_limita():
+    chunks = [{"chunk_id": "a", "texto": "prazo ouvidoria cliente"},
+              {"chunk_id": "b", "texto": "prazo ouvidoria cliente resposta"},
+              {"chunk_id": "c", "texto": "nada relacionado"},
+              {"chunk_id": "d", "texto": "prazo"}]
+    top = bd.overlap_top("Qual o prazo de resposta da ouvidoria ao cliente?", chunks, k=2)
+    assert [c for _, c in top] == ["b", "a"]
+    assert top[0][0] == 0.8  # "qual" tambem conta como termo
+
+
+def test_review_sem_resposta_mostra_origem_e_parecidos(monkeypatch, tmp_path, capsys):
+    monkeypatch.setattr("sys.stdin.isatty", lambda: True)
+    chunks = tmp_path / "chunks.jsonl"
+    chunks.write_text("".join(json.dumps({"chunk_id": c, "norma": "res_x", "artigo": "1",
+                                          "texto": f"TEXTO_{c}", "n_chars": 9}) + "\n"
+                              for c in ("res_x:art1", "res_x:art2")), encoding="utf-8")
+    cand = tmp_path / "c.jsonl"
+    cand.write_text(json.dumps({"id": "s1", "pergunta": "P?", "resposta_ouro": "RECUSA",
+                                "chunk_ids_relevantes": [], "categoria": "sem_resposta",
+                                "origem_chunk": "res_x:art1", "overlap_max": 0.7,
+                                "overlap_top": [[0.7, "res_x:art2"], [0.5, "res_x:art1"]]}) + "\n",
+                    encoding="utf-8")
+    monkeypatch.setattr("builtins.input", lambda *_: "q")
+    a = SimpleNamespace(categoria=None, chunks=str(chunks), cand=str(cand),
+                        v1=str(tmp_path / "v1.jsonl"), rej=str(tmp_path / "r.jsonl"))
+    bd.cmd_review(a)
+    out = capsys.readouterr().out
+    assert "TEXTO_res_x:art1" in out and "TEXTO_res_x:art2" in out
+    assert out.count("TEXTO_res_x:art1") == 1  # origem nao repete
