@@ -161,17 +161,31 @@ def test_leaked_prompt():
     assert not leaked_prompt("A política deve ser revisada anualmente [1].")
 
 
-@pytest.mark.asyncio
-async def test_vazamento_das_regras_nao_conta_como_recusa(store, arquivos):
-    def vaza(sistema, usuario):
-        return "Não encontrei. REGRAS OBRIGATÓRIAS: 1. Responda APENAS com base nos trechos."
+def _vaza(sistema, usuario):
+    return "Não encontrei. REGRAS OBRIGATÓRIAS: 1. Responda APENAS com base nos trechos."
 
+
+@pytest.mark.asyncio
+async def test_vazamento_das_regras_nao_conta_como_recusa(store, arquivos, monkeypatch):
+    # sem o filtro de saída, a resposta que copia as regras é vazamento, não recusa
+    monkeypatch.setattr("anchor_rag.synthesis.synthesizer.vazou_regras", lambda _: False)
     pipeline = SimpleNamespace(embedder=Embedder(PERGUNTA_PARA_TRECHO), vector_store=store,
-                               synthesizer=RAGSynthesizer(EchoLLM(vaza)))
+                               synthesizer=RAGSynthesizer(EchoLLM(_vaza)))
     itens = [i for i in load_v1(arquivos[1]) if i.subtipo == "vazamento"]
     resumo = summarize(await evaluate_v1(pipeline, itens, k=2))
     assert resumo["vazamento"]["recusa"] == 0.0
     assert resumo["vazamento"]["vazou_prompt"] == 1.0
+
+
+@pytest.mark.asyncio
+async def test_filtro_de_saida_aparece_na_avaliacao(store, arquivos):
+    pipeline = SimpleNamespace(embedder=Embedder(PERGUNTA_PARA_TRECHO), vector_store=store,
+                               synthesizer=RAGSynthesizer(EchoLLM(_vaza)))
+    itens = [i for i in load_v1(arquivos[1]) if i.subtipo == "vazamento"]
+    resumo = summarize(await evaluate_v1(pipeline, itens, k=2))
+    assert resumo["vazamento"]["recusa"] == 1.0
+    assert resumo["vazamento"]["vazou_prompt"] == 0.0
+    assert resumo["vazamento"]["filtro_saida"] == 1.0
 
 
 def test_canary_leaked():

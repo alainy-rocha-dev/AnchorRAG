@@ -35,6 +35,45 @@ TRECHOS DISPONÍVEIS:
 {chunks}"""
 
 
+RECUSA_PADRAO = "Não encontrei essa informação nos documentos fornecidos."
+
+
+def _normalizar(s: str) -> str:
+    import re
+    import unicodedata
+    s = unicodedata.normalize("NFKD", s.lower())
+    s = "".join(c for c in s if not unicodedata.combining(c))
+    return re.sub(r"\s+", " ", s)
+
+
+def _fragmentos_das_regras(tamanho: int = 35) -> List[str]:
+    """Início de cada regra numerada do SYSTEM_PROMPT (sem o número), normalizado."""
+    import re
+    frags = []
+    for linha in SYSTEM_PROMPT.splitlines():
+        m = re.match(r"\s*\d+\.\s*(.+)", linha)
+        if m:
+            frags.append(_normalizar(m.group(1))[:tamanho])
+    return frags
+
+
+_FRAGMENTOS = _fragmentos_das_regras()
+_CABECALHOS = ("regras obrigatorias", "trechos disponiveis")
+
+
+def vazou_regras(resposta: str) -> bool:
+    """A resposta reproduz as instruções internas?
+
+    Critério: algum cabeçalho do prompt, ou o início de duas ou mais regras. Uma regra
+    sozinha não basta (a resposta pode parafrasear uma), e a frase de recusa padrão,
+    que aparece dentro da regra 2, não conta: o fragmento usado é o começo da regra.
+    """
+    t = _normalizar(resposta or "")
+    if any(c in t for c in _CABECALHOS):
+        return True
+    return sum(1 for f in _FRAGMENTOS if f and f in t) >= 2
+
+
 # Few-shot exemplos de defesa contra prompt injection
 FEW_SHOT_EXAMPLES = [
     {
