@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import List, Optional, Tuple
+import logging
 from uuid import UUID
 from dataclasses import dataclass
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -51,6 +54,27 @@ class VectorStore(ABC):
         Retorna chunks ordenados por score (maior primeiro).
         """
         pass
+
+    async def search_with_scores(
+        self,
+        query_embedding: List[float],
+        top_k: int = 5,
+        threshold: float = 0.0,
+    ) -> List[Tuple[Chunk, float]]:
+        """
+        Busca por similaridade e devolve pares (chunk, score), score maior primeiro.
+
+        Implementação padrão para stores que não expõem o score (ex.: mocks de teste):
+        usa search() e marca score 1.0, com aviso. Stores reais devem sobrescrever.
+        """
+        if not getattr(self, "_aviso_sem_score", False):
+            logger.warning(
+                "%s não implementa search_with_scores; usando score 1.0 para todos os chunks",
+                type(self).__name__,
+            )
+            self._aviso_sem_score = True
+        chunks = await self.search(query_embedding, top_k=top_k, threshold=threshold)
+        return [(c, 1.0) for c in chunks]
 
     @abstractmethod
     async def get_chunks_by_doc(self, document_id: UUID) -> List[Chunk]:
