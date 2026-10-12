@@ -140,6 +140,14 @@ class SQLiteVecStore(VectorStore):
             CREATE INDEX IF NOT EXISTS idx_eval_log_timestamp ON eval_log(timestamp)
         """)
 
+        # Metadados da base (ex.: hash do corpus carregado e modelo de embedding)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS store_meta (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL
+            )
+        """)
+
         conn.commit()
         logger.info(f"SQLiteVecStore inicializado: {self.db_path}")
 
@@ -393,6 +401,58 @@ class SQLiteVecStore(VectorStore):
         )
         row = cursor.fetchone()
         return row is not None
+
+    async def upsert_document(
+        self,
+        document_id: UUID,
+        path: str,
+        filename: str,
+        content_hash: str,
+        metadata: Optional[dict] = None,
+    ) -> None:
+        """Grava (ou atualiza) um documento com hash real; use antes de add_chunks."""
+        conn = self._get_conn()
+        conn.execute(
+            """
+            INSERT INTO documents (id, path, filename, content_hash, page_count, metadata)
+            VALUES (?, ?, ?, ?, 0, ?)
+            ON CONFLICT(id) DO UPDATE SET
+                path = excluded.path,
+                filename = excluded.filename,
+                content_hash = excluded.content_hash,
+                metadata = excluded.metadata
+            """,
+            (str(document_id), path, filename, content_hash, json.dumps(metadata or {})),
+        )
+        conn.commit()
+
+    async def existing_chunk_ids(self, ids: List[str]) -> set:
+        """Dos ids informados, devolve os que já estão na base."""
+        conn = self._get_conn()
+        found: set = set()
+        for i in range(0, len(ids), 500):
+            lote = ids[i:i + 500]
+            marks = ",".join("?" for _ in lote)
+            rows = conn.execute(f"SELECT id FROM chunks WHERE id IN ({marks})", lote).fetchall()
+            found.update(r["id"] for r in rows)
+        return found
+
+    async def get_meta(self, key: str) -> Optional[str]:
+        """Lê um metadado da base (None se não existir)."""
+        row = self._get_conn().execute(
+            "SELECT value FROM store_meta WHERE key = ?", (key,)
+        ).fetchone()
+        return row["value"] if row else None
+
+    async def set_meta(self, key: str, value: str) -> None:
+        """Grava um metadado da base."""
+        conn = self._get_conn()
+        conn.execute(
+            "INSERT INTO store_meta (key, value) VALUES (?, ?) "
+            "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+            (key, value),
+        )
+        conn.commit()
 
     async def close(self):
         """Fecha conexão."""

@@ -66,6 +66,63 @@ def ingest(
     )
 
 
+@app.command("ingest-chunks")
+def ingest_chunks(
+    corpus: Path = typer.Argument(
+        Path("corpus/chunks.jsonl"), help="Arquivo chunks.jsonl gerado por eval/build_dataset.py ingest",
+        exists=True, readable=True,
+    ),
+    db: Path = typer.Option(Path("data/bcb.db"), "--db", help="Base SQLite de destino (separada dos PDFs)"),
+    embedding_provider: Optional[str] = typer.Option(None, "--embedding-provider", help="Override: openai, ollama, huggingface"),
+    embedding_model: Optional[str] = typer.Option(None, "--embedding-model", help="Override do modelo (ex.: bge-m3)"),
+    batch_size: int = typer.Option(32, "--batch-size", help="Chunks por chamada de embedding"),
+    config: Optional[Path] = typer.Option(None, "--config", "-c", help="Arquivo de configuração"),
+):
+    """Carrega o corpus de normas (chunks.jsonl) numa base vetorial, com IDs estáveis."""
+    import asyncio
+    from anchor_rag.embeddings import create_embedding_provider
+    from anchor_rag.ingestion.corpus_loader import CorpusMismatchError, ingest_corpus
+    from anchor_rag.vector_store.sqlite_vec import SQLiteVecStore
+
+    cfg = AppConfig.from_yaml(config).resolve_api_keys() if config else AppConfig()
+    if embedding_provider:
+        cfg.embedding.provider = embedding_provider
+    if embedding_model:
+        cfg.embedding.model = embedding_model
+    # A primeira chamada pode carregar o modelo na GPU; 30 s costuma ser pouco.
+    cfg.embedding.timeout = max(cfg.embedding.timeout, 120)
+
+    async def run():
+        embedder = create_embedding_provider(cfg.embedding)
+        store = SQLiteVecStore(str(db), embedding_dimensions=embedder.dimensions)
+
+        def progresso(feitos: int, total: int):
+            typer.echo(f"  embeddings: {feitos}/{total}")
+
+        try:
+            r = await ingest_corpus(
+                corpus, store, embedder, embedding_model=cfg.embedding.model,
+                batch_size=batch_size, on_progress=progresso,
+            )
+        finally:
+            await store.close()
+            fechar = getattr(embedder, "close", None)
+            if fechar:
+                await fechar()
+        return r
+
+    typer.echo(f"Corpus: {corpus}  ->  base: {db}  (embedding {cfg.embedding.provider}:{cfg.embedding.model})")
+    try:
+        r = asyncio.run(run())
+    except CorpusMismatchError as e:
+        typer.echo(f"ERRO: {e}", err=True)
+        raise typer.Exit(code=1)
+    typer.echo(
+        f"OK: {r.total} chunks de {r.normas} normas; {r.inseridos} inseridos, "
+        f"{r.pulados} já existiam. Hash do corpus: {r.corpus_hash[:12]}"
+    )
+
+
 @app.command()
 def query(
     question: str = typer.Argument(..., help="Pergunta para o sistema RAG"),
