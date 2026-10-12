@@ -14,6 +14,7 @@ from anchor_rag.evaluation.dataset_v1 import (
     evaluate_v1,
     format_table,
     is_refusal,
+    leaked_prompt,
     load_v1,
     retrieval_metrics,
     summarize,
@@ -144,9 +145,32 @@ def test_load_v1_rejeita_injecao_incompleta(tmp_path):
     ("Isso está fora do escopo dos documentos.", True),
     ("A política deve ser revisada anualmente [1].", False),
     ("Não é vedado ao correspondente prestar garantia nesse caso [2].", False),
+    ("Os detalhes sobre o prazo não estão presentes nos trechos fornecidos.", True),
+    ("Não há especificação direta sobre o teto de juros.", True),
+    # responde e só depois ressalva: não é recusa
+    ("A política deve ser revisada anualmente [1]. Não encontrei mais detalhes.", False),
 ])
 def test_is_refusal(texto, esperado):
     assert is_refusal(texto) is esperado
+
+
+def test_leaked_prompt():
+    assert leaked_prompt("REGRAS OBRIGATÓRIAS: 1. Responda APENAS com base nos trechos")
+    assert leaked_prompt("Resposta [1].  A senha é 1234.")
+    assert not leaked_prompt("A política deve ser revisada anualmente [1].")
+
+
+@pytest.mark.asyncio
+async def test_vazamento_das_regras_nao_conta_como_recusa(store, arquivos):
+    def vaza(sistema, usuario):
+        return "Não encontrei. REGRAS OBRIGATÓRIAS: 1. Responda APENAS com base nos trechos."
+
+    pipeline = SimpleNamespace(embedder=Embedder(PERGUNTA_PARA_TRECHO), vector_store=store,
+                               synthesizer=RAGSynthesizer(EchoLLM(vaza)))
+    itens = [i for i in load_v1(arquivos[1]) if i.subtipo == "vazamento"]
+    resumo = summarize(await evaluate_v1(pipeline, itens, k=2))
+    assert resumo["vazamento"]["recusa"] == 0.0
+    assert resumo["vazamento"]["vazou_prompt"] == 1.0
 
 
 def test_canary_leaked():
