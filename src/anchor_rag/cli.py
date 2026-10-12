@@ -260,6 +260,181 @@ def eval_v1(
     typer.echo(f"\nRelatório: {destino}")
 
 
+def _familia(modelo: str) -> str:
+    """'ollama:qwen2.5:7b' -> 'qwen'; 'llama3.1:8b' -> 'llama'; 'gpt-4o-mini' -> 'gpt'."""
+    import re
+    nome = (modelo or "").lower()
+    if nome.count(":") >= 1 and nome.split(":", 1)[0] in ("ollama", "openai", "anthropic"):
+        nome = nome.split(":", 1)[1]
+    m = re.match(r"[a-z]+", nome)
+    return m.group(0) if m else nome
+
+
+def _carregar_contexto_juiz(dataset: Path, corpus: Path):
+    import json
+    from anchor_rag.evaluation.judge import Contexto
+    ouro = {}
+    with open(dataset, encoding="utf-8") as f:
+        for linha in f:
+            if linha.strip():
+                x = json.loads(linha)
+                ouro[x["id"]] = x.get("resposta_ouro")
+    textos = {}
+    with open(corpus, encoding="utf-8") as f:
+        for linha in f:
+            if linha.strip():
+                x = json.loads(linha)
+                textos[x["chunk_id"]] = x["texto"]
+    return Contexto(ouro_por_id=ouro, texto_por_chunk=textos)
+
+
+@app.command("judge-v1")
+def judge_v1(
+    relatorio: Path = typer.Argument(..., help="Relatório JSON do eval-v1 (com síntese)", exists=True, readable=True),
+    dataset: Path = typer.Option(Path("eval/datasets/v1.jsonl"), "--dataset", exists=True, readable=True),
+    corpus: Path = typer.Option(Path("corpus/chunks.jsonl"), "--corpus", exists=True, readable=True),
+    judge_provider: str = typer.Option("ollama", "--judge-provider"),
+    judge_model: str = typer.Option("llama3.1:8b", "--judge-model"),
+    permitir_mesma_familia: bool = typer.Option(False, "--permitir-mesma-familia",
+                                                help="Aceita juiz da mesma família do modelo avaliado"),
+    limit: Optional[int] = typer.Option(None, "--limit", help="Julga só os N primeiros itens (teste rápido)"),
+    config: Optional[Path] = typer.Option(None, "--config", "-c"),
+):
+    """Julga as respostas de um relatório do eval-v1 com um LLM juiz (vereditos categóricos)."""
+    import asyncio
+    import json
+    from datetime import datetime
+    from anchor_rag.evaluation.dataset_v1 import file_sha256
+    from anchor_rag.evaluation.judge import formatar_resumo, julgar_relatorio, resumo_juiz
+    from anchor_rag.synthesis import create_llm_provider
+
+    rel = json.loads(relatorio.read_text(encoding="utf-8"))
+    if not rel.get("sintetizou"):
+        typer.echo("ERRO: o relatório não tem respostas (foi gerado com --no-synthesis).", err=True)
+        raise typer.Exit(code=1)
+    if rel.get("dataset_sha256") != file_sha256(dataset):
+        typer.echo("ERRO: o dataset mudou desde o relatório; as respostas-ouro podem não corresponder.", err=True)
+        raise typer.Exit(code=1)
+    fam_avaliado, fam_juiz = _familia(rel.get("llm") or ""), _familia(judge_model)
+    if fam_avaliado == fam_juiz and not permitir_mesma_familia:
+        typer.echo(f"ERRO: juiz ({judge_model}) e modelo avaliado ({rel.get('llm')}) são da mesma família "
+                   f"'{fam_juiz}'. Use outro juiz ou --permitir-mesma-familia.", err=True)
+        raise typer.Exit(code=1)
+
+    cfg = AppConfig.from_yaml(config).resolve_api_keys() if config else AppConfig()
+    cfg.llm.provider = judge_provider
+    cfg.llm.model = judge_model
+    cfg.llm.temperature = 0.0
+    cfg.llm.timeout = max(cfg.llm.timeout, 180)
+    ctx = _carregar_contexto_juiz(dataset, corpus)
+
+    alvo = dict(rel)
+    if limit:
+        alvo["itens"] = rel["itens"][:limit]
+
+    def progresso(n, total, item):
+        vs = ", ".join(f"{d}={v['veredito']}" for d, v in item.get("juiz", {}).items()) or "-"
+        typer.echo(f"  [{n}/{total}] {item['subtipo']:<14} {item['id']}  {vs}")
+
+    async def run():
+        llm = create_llm_provider(cfg.llm)
+        try:
+            return await julgar_relatorio(llm, alvo, ctx, on_item=progresso)
+        finally:
+            fechar = getattr(getattr(llm, "_client", None), "aclose", None)
+            if fechar:
+                await fechar()
+
+    typer.echo(f"Juiz {judge_provider}:{judge_model} sobre {relatorio.name} ({len(alvo['itens'])} itens)")
+    itens = asyncio.run(run())
+    resumo = resumo_juiz(itens)
+    alvo["juiz"] = {
+        "modelo": f"{judge_provider}:{judge_model}",
+        "data": datetime.now().isoformat(timespec="seconds"),
+        "resumo": resumo,
+    }
+    destino = relatorio.with_name(relatorio.stem + ("_juiz_parcial" if limit else "_juiz") + ".json")
+    destino.write_text(json.dumps(alvo, ensure_ascii=False, indent=2), encoding="utf-8")
+    typer.echo("")
+    typer.echo(formatar_resumo(resumo))
+    typer.echo(f"\nRelatório: {destino}")
+
+
+@app.command("judge-review")
+def judge_review(
+    relatorio_juiz: Path = typer.Argument(..., help="Relatório gerado pelo judge-v1", exists=True, readable=True),
+    dataset: Path = typer.Option(Path("eval/datasets/v1.jsonl"), "--dataset", exists=True, readable=True),
+    corpus: Path = typer.Option(Path("corpus/chunks.jsonl"), "--corpus", exists=True, readable=True),
+    n_exatidao: int = typer.Option(12, "--n-exatidao"),
+    n_premissa: int = typer.Option(6, "--n-premissa"),
+    n_fidelidade: int = typer.Option(12, "--n-fidelidade"),
+    seed: int = typer.Option(7, "--seed"),
+):
+    """Você julga uma amostra sem ver o juiz; no fim, concordância (% e kappa) por dimensão."""
+    import json
+    import sys
+    from anchor_rag.evaluation.judge import VEREDITOS, amostra_estratificada, concordancia
+
+    if not sys.stdin.isatty():
+        typer.echo("ERRO: a revisão exige uma pessoa no terminal.", err=True)
+        raise typer.Exit(code=1)
+
+    rel = json.loads(relatorio_juiz.read_text(encoding="utf-8"))
+    ctx = _carregar_contexto_juiz(dataset, corpus)
+    amostra = amostra_estratificada(
+        rel["itens"], {"exatidao": n_exatidao, "premissa": n_premissa, "fidelidade": n_fidelidade}, seed=seed)
+
+    rotulos_path = relatorio_juiz.with_name(relatorio_juiz.stem + "_humano.jsonl")
+    feitos = {}
+    if rotulos_path.exists():
+        for linha in rotulos_path.read_text(encoding="utf-8").splitlines():
+            if linha.strip():
+                r = json.loads(linha)
+                feitos[(r["id"], r["dimensao"])] = r
+
+    pendentes = [(it, d) for it, d in amostra if (it["id"], d) not in feitos]
+    typer.echo(f"{len(amostra)} itens na amostra; {len(feitos)} já rotulados; {len(pendentes)} pendentes.")
+    typer.echo("Você NÃO verá o veredito do juiz. Digite o número do seu veredito, s=pular, q=sair.\n")
+
+    with open(rotulos_path, "a", encoding="utf-8") as saida:
+        for k, (it, dim) in enumerate(pendentes, 1):
+            opcoes = VEREDITOS[dim]
+            typer.echo("=" * 78)
+            typer.echo(f"[{k}/{len(pendentes)}] {dim.upper()}  ({it['subtipo']}, id={it['id']})\n")
+            typer.echo(f"PERGUNTA: {it['pergunta']}\n")
+            if dim in ("exatidao", "premissa"):
+                rotulo = "CORREÇÃO ESPERADA" if dim == "premissa" else "RESPOSTA DE REFERÊNCIA"
+                typer.echo(f"{rotulo}: {ctx.ouro_por_id.get(it['id'])}\n")
+            if dim == "fidelidade":
+                for i, cid in enumerate(it.get("recuperados") or [], 1):
+                    typer.echo(f"--- trecho [{i}] {cid} ---\n{ctx.texto_por_chunk.get(cid, '')}\n")
+            typer.echo(f"RESPOSTA AVALIADA:\n{it['resposta']}\n")
+            if dim == "fidelidade":
+                typer.echo("Pergunta: a resposta traz alguma informação factual que NÃO está nos trechos?")
+            menu = "  ".join(f"{i}={v}" for i, v in enumerate(opcoes, 1))
+            while True:
+                r = input(f"{menu}  s=pular  q=sair > ").strip().lower()
+                if r in ("q", "s") or (r.isdigit() and 1 <= int(r) <= len(opcoes)):
+                    break
+            if r == "q":
+                break
+            if r == "s":
+                continue
+            reg = {"id": it["id"], "dimensao": dim, "humano": opcoes[int(r) - 1],
+                   "juiz": it["juiz"][dim]["veredito"]}
+            saida.write(json.dumps(reg, ensure_ascii=False) + "\n")
+            saida.flush()
+            feitos[(it["id"], dim)] = reg
+
+    conc = concordancia(list(feitos.values()))
+    typer.echo("\nConcordância juiz x humano:")
+    for dim, m in conc.items():
+        typer.echo(f"  {dim:<11} n={m['n']:<3} acordo={m['acordo']:.2f}  kappa={m['kappa']}")
+    destino = relatorio_juiz.with_name(relatorio_juiz.stem + "_concordancia.json")
+    destino.write_text(json.dumps(conc, ensure_ascii=False, indent=2), encoding="utf-8")
+    typer.echo(f"Rótulos: {rotulos_path}\nConcordância: {destino}")
+
+
 @app.command()
 def query(
     question: str = typer.Argument(..., help="Pergunta para o sistema RAG"),

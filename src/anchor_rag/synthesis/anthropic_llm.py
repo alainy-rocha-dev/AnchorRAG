@@ -46,7 +46,7 @@ class AnthropicLLMProvider(LLMProvider):
             model=self.config.model,
             system=system_prompt if system_prompt else None,
             messages=anthropic_messages,
-            temperature=temperature or self.config.temperature,
+            temperature=temperature if temperature is not None else self.config.temperature,
             max_tokens=max_tokens or self.config.max_tokens,
         )
 
@@ -77,7 +77,7 @@ class AnthropicLLMProvider(LLMProvider):
             model=self.config.model,
             system=system_prompt if system_prompt else None,
             messages=anthropic_messages,
-            temperature=temperature or self.config.temperature,
+            temperature=temperature if temperature is not None else self.config.temperature,
             max_tokens=max_tokens or self.config.max_tokens,
             stream=True,
         )

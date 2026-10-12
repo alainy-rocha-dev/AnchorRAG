@@ -34,7 +34,7 @@ class OllamaLLMProvider(LLMProvider):
             "messages": messages,
             "stream": False,
             "options": {
-                "temperature": temperature or self.config.temperature,
+                "temperature": temperature if temperature is not None else self.config.temperature,
                 "num_predict": max_tokens or self.config.max_tokens,
             },
         }
@@ -63,7 +63,7 @@ class OllamaLLMProvider(LLMProvider):
             "messages": messages,
             "stream": True,
             "options": {
-                "temperature": temperature or self.config.temperature,
+                "temperature": temperature if temperature is not None else self.config.temperature,
                 "num_predict": max_tokens or self.config.max_tokens,
             },
         }

@@ -43,7 +43,7 @@ class OpenAILLMProvider(LLMProvider):
         response = await self._client.chat.completions.create(
             model=self.config.model,
             messages=messages,
-            temperature=temperature or self.config.temperature,
+            temperature=temperature if temperature is not None else self.config.temperature,
             max_tokens=max_tokens or self.config.max_tokens,
         )
         choice = response.choices[0]
@@ -69,7 +69,7 @@ class OpenAILLMProvider(LLMProvider):
         stream = await self._client.chat.completions.create(
             model=self.config.model,
             messages=messages,
-            temperature=temperature or self.config.temperature,
+            temperature=temperature if temperature is not None else self.config.temperature,
             max_tokens=max_tokens or self.config.max_tokens,
             stream=True,
         )
