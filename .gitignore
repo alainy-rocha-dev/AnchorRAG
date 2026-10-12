@@ -35,4 +35,8 @@ htmlcov/
 
 # Data files (local)
 data/anchor_rag.db
-data/*.db
+data/*.db_rascunhos/
+src/*.egg-info/
+
+_rascunhos/
+*.egg-info/

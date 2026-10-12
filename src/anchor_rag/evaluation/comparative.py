@@ -112,7 +112,8 @@ class ComparativeEvaluator:
         """Carrega dataset de avaliação YAML."""
         with open(path, "r", encoding="utf-8") as f:
             data = yaml.safe_load(f)
-        return data.get("queries", [])
+        # Suporta tanto 'queries' quanto 'eval_cases' para compatibilidade
+        return data.get("queries", data.get("eval_cases", []))
 
     async def _eval_provider_on_dataset(
         self,
@@ -124,7 +125,7 @@ class ComparativeEvaluator:
     ) -> List[Dict[str, float]]:
         """Roda avaliação completa para um provedor."""
         from anchor_rag.config import AppConfig
-        from anchor_rag.pipeline.orchestrator import PipelineOrchestrator
+        from anchor_rag.pipeline.orchestrator import RAGPipeline
         from anchor_rag.evaluation.critique_refine import CritiqueAndRefineSynthesizer
 
         # Carrega config
@@ -137,7 +138,7 @@ class ComparativeEvaluator:
         config.llm.provider = provider_name
 
         # Cria orchestrator
-        orchestrator = PipelineOrchestrator(config)
+        orchestrator = RAGPipeline(config)
 
         results = []
         for item in dataset:

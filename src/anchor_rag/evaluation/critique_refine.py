@@ -1,16 +1,19 @@
 """Critique-and-Refine Synthesizer - Agentic self-improvement loop."""
 
-from __future__ import annotations
 from typing import List, Optional, Dict, Any, Tuple
 import logging
 from uuid import uuid4
 from dataclasses import dataclass, field
 
-from anchor_rag.domain.models import Chunk, QueryResult, QueryConfig
-from anchor_rag.synthesis.synthesizer import RAGSynthesizer
+from anchor_rag.domain.models import Chunk, QueryResult
+from anchor_rag.synthesis.synthesizer import RAGSynthesizer, SynthesizerConfig
 from anchor_rag.evaluation.evaluator import EvaluatorProvider
 
 logger = logging.getLogger(__name__)
+
+# Limite de tokens da resposta refinada. Antes dependia de config.llm_model, campo que
+# SynthesizerConfig nao tem: o AttributeError era engolido e o refinamento nunca rodava.
+REFINE_MAX_TOKENS = 1024
 
 
 @dataclass
@@ -62,7 +65,8 @@ class CritiqueAndRefineSynthesizer:
         self,
         query: str,
         chunks: List[Chunk],
-        config: QueryConfig,
+        scores: List[float],
+        config: Optional[SynthesizerConfig] = None,
         request_id: Optional[str] = None,
     ) -> Tuple[QueryResult, CritiqueAndRefineResult]:
         """Executa síntese com critique-and-refine.
@@ -75,7 +79,7 @@ class CritiqueAndRefineSynthesizer:
 
         # 1. Gera resposta base
         logger.info(f"[{request_id}] critique_refine: geração base")
-        base_result = await self.synthesizer.synthesize(query, chunks, config)
+        base_result = await self.synthesizer.synthesize(query, chunks, scores, config)
 
         # 2. Avalia resposta base
         context_texts = [c.content for c in chunks]
@@ -222,7 +226,7 @@ class CritiqueAndRefineSynthesizer:
 
         try:
             # Usa o mesmo LLM do sintetizador para critique
-            critique_response = await self.synthesizer.llm_provider.generate(
+            critique_response = await self.synthesizer.llm.generate(
                 prompt=critique_prompt,
                 temperature=0.3,  # Levemente criativo para critique
                 max_tokens=512,
@@ -236,7 +240,7 @@ class CritiqueAndRefineSynthesizer:
         self,
         query: str,
         chunks: List[Chunk],
-        config: QueryConfig,
+        config: Optional[SynthesizerConfig],
         previous_answer: str,
         critique: str,
     ) -> Optional[QueryResult]:
@@ -260,10 +264,10 @@ class CritiqueAndRefineSynthesizer:
         )
 
         try:
-            refined_text = await self.synthesizer.llm_provider.generate(
+            refined_text = await self.synthesizer.llm.generate(
                 prompt=refine_prompt,
                 temperature=0.1,  # Baixa temperatura para consistência
-                max_tokens=config.llm_model is not None and 2048 or 1024,
+                max_tokens=REFINE_MAX_TOKENS,
             )
 
             # Extrai citações do texto refinado (reusa lógica do sintetizador)

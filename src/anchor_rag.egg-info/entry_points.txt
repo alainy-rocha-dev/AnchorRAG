@@ -1,2 +1,0 @@
-[console_scripts]
-anchor-rag = anchor_rag.cli:app

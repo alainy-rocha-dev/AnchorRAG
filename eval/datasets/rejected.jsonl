@@ -1,0 +1,56 @@
+{"id": "910f0fab00", "motivo": "trecho sem conteúdo normativo (lista de revogações); resposta inventada"}
+{"id": "9fe9318108", "motivo": "trecho depende de remissões (arts. 14, 15 e 16); pergunta distorce o sentido (contratar IF como correspondente)"}
+{"id": "a89f077abc", "motivo": "trecho -p2 depende do inciso IX (em outro chunk); resposta trocou objeto social do correspondente pelo da instituição"}
+{"id": "a769443d1c", "motivo": "resposta em inglês; texto do chunk corrompido (falta trecho da frase em relação ao original)"}
+{"id": "5200ee4d4d", "motivo": "trecho sem conteúdo normativo (lista de revogações); resposta inventada"}
+{"id": "4bd139b5dd", "motivo": "trecho depende de remissões (arts. 6º e 7º); data inventada (1º de janeiro, texto diz janeiro)"}
+{"id": "ec58cc6b9f", "motivo": "aplicou a norma a instituições de pagamento (excluídas pelo art. 1º, § 1º); Pix inventado"}
+{"id": "7bc2b7c819", "motivo": "usa só um trecho (art. 24 não participa); “apresentar” no lugar de “manter à disposição”"}
+{"id": "cf7e667839", "motivo": "trechos sem relação; pergunta composta; modalidades inventadas (débito automático, PPOV)"}
+{"id": "2aa26c6696", "motivo": "trechos sem relação; pergunta composta"}
+{"id": "b66ba1e5c0", "motivo": "trechos sem relação direta; pergunta composta"}
+{"id": "32ce7ebeb3", "motivo": "trechos sem relação; resposta inventou ligação (documento do art. 57 é sobre conhecer funcionários e parceiros, não depósitos)"}
+{"id": "7409d07bbf", "motivo": "trechos sem relação; resposta inventou exceção para o Pix Saque; art. 98 só remete a capítulos sem dizer o conteúdo"}
+{"id": "665a7c5c22", "motivo": "trechos sem relação direta; pergunta composta; ambígua com 4.893 (não nomeia instituição de pagamento)"}
+{"id": "85dea1ef4c", "motivo": "resposta trata faculdade do § 5º como regra geral; ignora o art. 72-B; trechos sem relação direta"}
+{"id": "8d95cbf9a2", "motivo": "mistura estrutura simplificada (art. 61) com estrutura unificada do conglomerado (art. 54), que valem para instituições diferentes"}
+{"id": "1c6776c634", "motivo": "instituições de pagamento em norma do CMN; ligação falsa (prazo de 2021 aplicado ao art. 22-B, incluído em 2025)"}
+{"id": "d8fa3fcea6", "motivo": "trechos sem relação; pergunta composta; prazo de cinco anos aplicado também ao regulamento"}
+{"id": "b4a3e265e9", "motivo": "corpus responde em parte (4.949, arts. 3º e 7º); pergunta vaga"}
+{"id": "f1e29c9d54", "motivo": "corpus responde (o próprio trecho de origem, res_cmn_4966:art2-p2)"}
+{"id": "fafc31179e", "motivo": "corpus responde (o próprio trecho de origem, circ_3978:art46)"}
+{"id": "455e495e31", "motivo": "sujeito errado (a obrigação é do participante responsável); regulamento do Pix tem capítulo de penalidades que pode responder"}
+{"id": "b73ef92215", "motivo": "pergunta vaga; corpus responde (contratação de processamento, armazenamento e nuvem, 4.893 e BCB 85, arts. 11 a 17)"}
+{"id": "705b52e7e2", "motivo": "premissa falsa (4.557 não se aplica a instituições de pagamento); caberia em adversarial, não em sem_resposta"}
+{"id": "3f3e60b587", "motivo": "cita “artigo 7º”; pergunta depende do trecho e descreve mal o artigo"}
+{"id": "a0b50329f9", "motivo": "corpus responde (o próprio trecho de origem, res_cmn_4879:art9, inciso II)"}
+{"id": "05931ca0f0", "motivo": "corpus responde (o próprio trecho de origem, res_cmn_4968:art8, parágrafo único)"}
+{"id": "53482ffedc", "motivo": "corpus responde (res_cmn_4860:art3, finalidade da ouvidoria); busca de parecidos não encontrou"}
+{"id": "d4018dc252", "motivo": "corpus responde em parte (4.893, art. 3º, § 2º, controles de segurança; Pix, dispositivos de acesso)"}
+{"id": "571f5e6b1e", "motivo": "corpus responde (Circular 3.978, art. 1º, abrange instituições autorizadas pelo BC, inclusive corretoras; art. 9º exige o diretor)"}
+{"id": "bf49db6453", "motivo": "corpus responde parcialmente (4893 trata de segurança cibernética; 4949 art. 7º, IV, de requisitos de segurança)"}
+{"id": "11a143e10b", "motivo": "corpus responde (4893 e BCB 85, art. 12, listam o que verificar antes de contratar nuvem)"}
+{"id": "db3cfc629f", "motivo": "corpus responde parcialmente (BCB 85 exige revisão anual da política e do plano e relatório anual sobre o plano de ação)"}
+{"id": "2dae74dd10", "motivo": "corpus responde (BCB 80 trata da constituição das instituições de pagamento e dos parâmetros do pedido de autorização)"}
+{"id": "9453d1edf5", "motivo": "corpus responde (4557 art. 53: riscos do conglomerado, de cada instituição e das entidades controladas; a norma também detalha crédito, mercado, liquidez etc.)"}
+{"id": "c8d72045db", "motivo": "corpus responde (4935 arts. 14 e 15: vedações, exceção do parágrafo único, crachá, identificação, remuneração máxima de 6%/3%)"}
+{"id": "331c1d88bb", "motivo": "corpus responde (4879 art. 19: plano anual de auditoria interna e relatório anual)"}
+{"id": "65710d3ed4", "motivo": "corpus responde (4968 capítulo III: DA RESPONSABILIDADE DA ADMINISTRAÇÃO)"}
+{"id": "90a325d7f4", "motivo": "pergunta depende do trecho (\"mencionados no trecho\") e é vaga; o corpus diz que os dados ficam à disposição do BCB por 5 anos"}
+{"id": "040cca7759", "motivo": "corpus responde (4966 subseção II, Da Apropriação de Receitas e Encargos, logo após o art. 14)"}
+{"id": "a7b1db67df", "motivo": "corpus responde (circ 3978: arts. 2º, 10, 13 e 27; perfil de risco do cliente, avaliação interna de risco, PEP)"}
+{"id": "05a198b108", "motivo": "corpus responde (regulamento Pix arts. 92 e 93: qualquer descumprimento sujeita a advertência, multa ou exclusão)"}
+{"id": "458a0170c0", "motivo": "corpus responde (4893 e BCB 85, art. 17: cláusulas obrigatórias do contrato de nuvem)"}
+{"id": "e5d1daee7f", "motivo": "corpus responde (BCB 85 arts. 11 a 17 se aplicam a instituições de pagamento fora das exceções do art. 18)"}
+{"id": "c53e5be33d", "motivo": "“diversificado” × “justo e equitativo” não é uma contradição clara"}
+{"id": "54144702ab", "motivo": "cita o número da norma; a pergunta só repete o texto"}
+{"id": "59aec94a11", "motivo": "saída corrompida (texto em chinês, ouro vazio)"}
+{"id": "3d8add091b", "motivo": "pergunta confusa (“comunicar... à segurança cibernética”)"}
+{"id": "6c56098b0f", "motivo": "premissa imprecisa (“riscos de liquidez”; o art. 54 fala dos riscos do art. 6º)"}
+{"id": "7338661a76", "motivo": "pergunta distorce o art. 7º e cita artigos"}
+{"id": "5585165ba0", "motivo": "ouro errado: a 4968 não se aplica a instituições de pagamento (art. 1º, parágrafo único), e a premissa sobre IPs nem é falsa no corpus"}
+{"id": "30f898461b", "motivo": "a norma não fala em “apenas um diretor”; o ouro não corrige nada"}
+{"id": "cf937a212d", "motivo": "ouro em inglês e premissa verdadeira"}
+{"id": "76a8b83526", "motivo": "premissa confusa (o art. 53 trata da estrutura do conglomerado)"}
+{"id": "113a6809dc", "motivo": "ouro enganoso sobre o que o parágrafo único dispensa"}
+{"id": "b2b390bef6", "motivo": "premissa contraditória em si mesma"}

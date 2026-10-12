@@ -1,0 +1,31 @@
+# Lista de normas para o corpus do AnchorRAG
+# Formato: Tipo;Número   (o Tipo deve ser escrito como no portal do BCB)
+#
+# ATENÇÃO: só a Res. CMN 4.893 foi conferida na API (vigente em 11/10/2026).
+# Os demais números vieram de memória. Rode primeiro:
+#   python eval/build_dataset.py fetch --lista corpus/normas.txt --verificar
+# e remova ou troque o que vier REVOGADO, NÃO ACHADO ou fora da faixa de artigos.
+
+# Segurança cibernética e nuvem
+Resolução CMN;4893
+Resolução BCB;85
+
+# Gestão de riscos e controles internos
+Resolução;4557
+Resolução CMN;4968
+Resolução CMN;4879
+
+# Instrumentos financeiros (vigência escalonada: anotar no SOURCES.md)
+Resolução CMN;4966
+
+# Relacionamento com clientes, ouvidoria e correspondentes
+Resolução CMN;4949
+Resolução CMN;4860
+Resolução CMN;4935
+
+# Pix e pagamentos
+Resolução BCB;1
+Resolução BCB;80
+
+# PLD/FT
+Circular;3978

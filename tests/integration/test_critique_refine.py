@@ -9,7 +9,7 @@ from uuid import uuid4
 from anchor_rag.domain.models import Chunk, QueryConfig, QueryResult
 from anchor_rag.evaluation.critique_refine import CritiqueAndRefineSynthesizer, CritiqueAndRefineResult
 from anchor_rag.evaluation.evaluator import EvaluatorProvider
-from anchor_rag.synthesis.synthesizer import RAGSynthesizer
+from anchor_rag.synthesis.synthesizer import RAGSynthesizer, SynthesizerConfig
 
 
 class MockEvaluator(EvaluatorProvider):
@@ -18,7 +18,7 @@ class MockEvaluator(EvaluatorProvider):
     def __init__(self, scores_sequence: List[dict]):
         super().__init__(model="mock")
         self.scores_sequence = scores_sequence
-        self.call_count = 0
+        self.eval_call_count = 0
 
     @property
     def provider_name(self) -> str:
@@ -37,23 +37,31 @@ class MockEvaluator(EvaluatorProvider):
         return self._get_score("context_recall")
 
     def _get_score(self, metric: str) -> float:
-        if self.call_count < len(self.scores_sequence):
-            return self.scores_sequence[self.call_count].get(metric, 0.5)
+        if self.eval_call_count < len(self.scores_sequence):
+            return self.scores_sequence[self.eval_call_count].get(metric, 0.5)
         return 0.5
 
     async def health_check(self) -> bool:
         return True
 
     async def evaluate_all(self, query: str, context: List[str], answer: str) -> dict:
-        self.call_count += 1
-        return await super().evaluate_all(query, context, answer)
+        result = await super().evaluate_all(query, context, answer)
+        self.eval_call_count += 1
+        return result
 
 
 class MockSynthesizer(RAGSynthesizer):
     """Mock synthesizer para testes."""
 
     def __init__(self, answers: List[str]):
-        super().__init__(llm_provider=None)
+        # Cria um mock llm_provider com método generate
+        class MockLLMProvider:
+            def __init__(self, outer):
+                self.outer = outer
+            async def generate(self, prompt: str, temperature: float = 0.1, max_tokens: int = 1024) -> str:
+                return await self.outer.generate(prompt, temperature, max_tokens)
+        
+        super().__init__(llm_provider=MockLLMProvider(self))
         self.answers = answers
         self.call_count = 0
 
@@ -103,14 +111,20 @@ def sample_chunks():
 
 @pytest.fixture
 def query_config():
-    return QueryConfig(top_k=5, threshold=0.7)
+    # Mesmo tipo de config que o orchestrator passa em producao (SynthesizerConfig, nao QueryConfig).
+    return SynthesizerConfig(max_chunks=5, min_score_threshold=0.7)
+
+
+@pytest.fixture
+def sample_scores():
+    return [0.9, 0.8]
 
 
 class TestCritiqueAndRefineSynthesizer:
     """Testes de integração para CritiqueAndRefineSynthesizer."""
 
     @pytest.mark.asyncio
-    async def test_stops_at_threshold_met(self, sample_chunks, query_config):
+    async def test_stops_at_threshold_met(self, sample_chunks, query_config, sample_scores):
         """Deve parar na primeira iteração se thresholds atendidos."""
         # Scores altos na primeira avaliação
         evaluator = MockEvaluator([
@@ -128,6 +142,7 @@ class TestCritiqueAndRefineSynthesizer:
         result, trail_result = await critique_refine.synthesize(
             query="Qual a taxa Selic?",
             chunks=sample_chunks,
+            scores=sample_scores,
             config=query_config,
         )
 
@@ -138,7 +153,7 @@ class TestCritiqueAndRefineSynthesizer:
         assert trail_result.trail[0].iteration == 0
 
     @pytest.mark.asyncio
-    async def test_refines_once_then_meets_threshold(self, sample_chunks, query_config):
+    async def test_refines_once_then_meets_threshold(self, sample_chunks, query_config, sample_scores):
         """Deve refinar uma vez e depois atender thresholds."""
         # Primeira avaliação baixa, segunda alta
         evaluator = MockEvaluator([
@@ -160,6 +175,7 @@ class TestCritiqueAndRefineSynthesizer:
         result, trail_result = await critique_refine.synthesize(
             query="Qual a taxa Selic?",
             chunks=sample_chunks,
+            scores=sample_scores,
             config=query_config,
         )
 
@@ -173,7 +189,7 @@ class TestCritiqueAndRefineSynthesizer:
         assert trail_result.trail[1].critique is not None
 
     @pytest.mark.asyncio
-    async def test_max_iterations_limit(self, sample_chunks, query_config):
+    async def test_max_iterations_limit(self, sample_chunks, query_config, sample_scores):
         """Deve respeitar max_iterations (2 refinamentos = 3 total)."""
         # Scores sempre baixos
         evaluator = MockEvaluator([
@@ -197,6 +213,7 @@ class TestCritiqueAndRefineSynthesizer:
         result, trail_result = await critique_refine.synthesize(
             query="Qual a taxa Selic?",
             chunks=sample_chunks,
+            scores=sample_scores,
             config=query_config,
         )
 
@@ -206,7 +223,7 @@ class TestCritiqueAndRefineSynthesizer:
         assert len(trail_result.trail) == 3
 
     @pytest.mark.asyncio
-    async def test_trail_contains_scores(self, sample_chunks, query_config):
+    async def test_trail_contains_scores(self, sample_chunks, query_config, sample_scores):
         """Trail deve conter scores de cada iteração."""
         evaluator = MockEvaluator([
             {"faithfulness": 0.6, "answer_relevancy": 0.7, "context_precision": 0.7, "context_recall": 0.6},
@@ -224,6 +241,7 @@ class TestCritiqueAndRefineSynthesizer:
         result, trail_result = await critique_refine.synthesize(
             query="Qual a taxa Selic?",
             chunks=sample_chunks,
+            scores=sample_scores,
             config=query_config,
         )
 
@@ -237,7 +255,7 @@ class TestCritiqueAndRefineSynthesizer:
             assert 0 <= step.scores["faithfulness"] <= 1
 
     @pytest.mark.asyncio
-    async def test_returns_best_result_not_last(self, sample_chunks, query_config):
+    async def test_returns_best_result_not_last(self, sample_chunks, query_config, sample_scores):
         """Deve retornar o melhor resultado (maior soma de scores), não o último."""
         # Base: médio, Refine 1: melhor, Refine 2: pior
         evaluator = MockEvaluator([
@@ -257,6 +275,7 @@ class TestCritiqueAndRefineSynthesizer:
         result, trail_result = await critique_refine.synthesize(
             query="Qual a taxa Selic?",
             chunks=sample_chunks,
+            scores=sample_scores,
             config=query_config,
         )
 
@@ -264,8 +283,8 @@ class TestCritiqueAndRefineSynthesizer:
         assert "melhor" in result.answer.lower() or trail_result.final_scores["faithfulness"] == 0.9
 
     @pytest.mark.asyncio
-    async def test_llm_calls_count(self, sample_chunks, query_config):
-        """Total de chamadas LLM deve ser <= 3 (1 base + 2 refinamentos)."""
+    async def test_llm_calls_count(self, sample_chunks, query_config, sample_scores):
+        """Deve fazer até 3 iterações (base + 2 refinamentos) e chamar judge 3 vezes."""
         evaluator = MockEvaluator([
             {"faithfulness": 0.4, "answer_relevancy": 0.4, "context_precision": 0.4, "context_recall": 0.4},
             {"faithfulness": 0.5, "answer_relevancy": 0.5, "context_precision": 0.5, "context_recall": 0.5},
@@ -280,17 +299,46 @@ class TestCritiqueAndRefineSynthesizer:
             max_iterations=2,
         )
 
-        # Conta chamadas ao sintetizador
-        initial_synthesize_calls = synthesizer.call_count
-
-        await critique_refine.synthesize(
+        result, trail_result = await critique_refine.synthesize(
             query="Qual a taxa Selic?",
             chunks=sample_chunks,
+            scores=sample_scores,
             config=query_config,
         )
 
-        # Deve chamar synthesize 3 vezes (base + 2 refinamentos)
-        assert synthesizer.call_count - initial_synthesize_calls == 3
+        # Deve ter 3 iterações no trail (base + 2 refinamentos)
+        assert trail_result.total_iterations == 3
+        assert len(trail_result.trail) == 3
+        assert trail_result.stopped_reason == "max_iterations"
 
-        # Judge chamado 3 vezes (1 por iteração × 4 métricas cada = 12 calls to evaluate_all, mas 3 iterações)
-        assert evaluator.call_count == 3
+        # Judge chamado 3 vezes (1 por iteração)
+        assert evaluator.eval_call_count == 3
+
+
+    @pytest.mark.asyncio
+    async def test_refines_with_default_config(self, sample_chunks, sample_scores):
+        """Com config=None (default do orchestrator), o refinamento deve rodar, nao falhar em silencio."""
+        evaluator = MockEvaluator([
+            {"faithfulness": 0.5, "answer_relevancy": 0.5, "context_precision": 0.5, "context_recall": 0.5},
+            {"faithfulness": 0.9, "answer_relevancy": 0.9, "context_precision": 0.9, "context_recall": 0.9},
+        ])
+        synthesizer = MockSynthesizer(["Resposta base"])
+
+        critique_refine = CritiqueAndRefineSynthesizer(
+            synthesizer=synthesizer,
+            evaluator=evaluator,
+            thresholds={"faithfulness": 0.7, "answer_relevancy": 0.7, "context_precision": 0.7, "context_recall": 0.7},
+            max_iterations=2,
+        )
+
+        result, trail_result = await critique_refine.synthesize(
+            query="Qual a taxa Selic?",
+            chunks=sample_chunks,
+            scores=sample_scores,
+            config=None,
+        )
+
+        assert trail_result.total_iterations == 2
+        assert trail_result.stopped_reason == "threshold_met"
+        assert trail_result.trail[1].critique is not None
+        assert result.answer != "Resposta base"
