@@ -38,17 +38,19 @@ class RAGSynthesizer:
         self,
         chunks: List[Chunk],
         scores: List[float],
+        config: Optional[SynthesizerConfig] = None,
     ) -> List[ChunkWithScore]:
-        """Prepara chunks com scores para o prompt."""
+        """Prepara chunks com scores para o prompt (usa a config da chamada, se houver)."""
+        cfg = config or self.config
         # Filtra por threshold
         filtered = [
             (c, s) for c, s in zip(chunks, scores)
-            if s >= self.config.min_score_threshold
+            if s >= cfg.min_score_threshold
         ]
 
         # Ordena por score decrescente e limita
         filtered.sort(key=lambda x: x[1], reverse=True)
-        filtered = filtered[: self.config.max_chunks]
+        filtered = filtered[: cfg.max_chunks]
 
         # Cria objetos com index 1-based para citações
         return [
@@ -95,7 +97,7 @@ class RAGSynthesizer:
             )
 
         # Prepara chunks para o prompt
-        chunks_with_score = self._prepare_chunks(chunks, scores)
+        chunks_with_score = self._prepare_chunks(chunks, scores, cfg)
 
         # Constrói mensagens
         messages = build_messages(
