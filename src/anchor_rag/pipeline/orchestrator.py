@@ -30,6 +30,28 @@ from anchor_rag.evaluation.cost import CostEstimator, create_cost_estimator_from
 logger = logging.getLogger(__name__)
 
 
+def _como_chunk_de_dominio(c) -> Chunk:
+    """Converte o Chunk do vector store (dataclass) para o Chunk de domínio (pydantic).
+
+    O QueryResult só aceita o Chunk de domínio; sem a conversão, query(no_synthesis=True)
+    falhava com o SQLiteVecStore real.
+    """
+    if isinstance(c, Chunk):
+        return c
+    return Chunk(
+        id=c.id,
+        document_id=c.document_id,
+        content=c.content,
+        chunk_index=c.chunk_index or 0,
+        page_number=c.page_number,
+        start_char=c.start_char or 0,
+        end_char=c.end_char or len(c.content),
+        token_count=c.token_count,
+        embedding=None,
+        metadata=c.metadata or {},
+    )
+
+
 @dataclass
 class EvalCase:
     """Caso de teste para avaliação."""
@@ -134,7 +156,7 @@ class RAGPipeline:
 
         # 2. Busca vetorial
         search_start = time.perf_counter()
-        search_results = await self.vector_store.search(
+        search_results = await self.vector_store.search_with_scores(
             query_embedding=query_embedding,
             top_k=cfg.top_k,
             threshold=cfg.threshold,
@@ -150,9 +172,9 @@ class RAGPipeline:
                 latency_ms={"embed": embed_latency, "search": search_latency, "total": embed_latency + search_latency},
             )
 
-        # Extrai chunks e scores
-        chunks = search_results
-        scores = [1.0] * len(chunks)  # scores viriam do vector store idealmente
+        # Separa chunks e scores reais de similaridade
+        chunks = [_como_chunk_de_dominio(c) for c, _ in search_results]
+        scores = [s for _, s in search_results]
 
         # 3. Síntese (se não desabilitado)
         if cfg.no_synthesis:
@@ -372,7 +394,7 @@ class RAGPipeline:
                 embed_latency = (time.perf_counter() - embed_start) * 1000
 
                 search_start = time.perf_counter()
-                search_results = await self.vector_store.search(
+                search_results = await self.vector_store.search_with_scores(
                     query_embedding=query_embedding,
                     top_k=query_config.top_k,
                     threshold=query_config.threshold,
@@ -393,8 +415,8 @@ class RAGPipeline:
                     })
                     continue
 
-                chunks = search_results
-                scores = [1.0] * len(chunks)
+                chunks = [c for c, _ in search_results]
+                scores = [s for _, s in search_results]
 
                 # 2. Critique-and-Refine synthesis
                 synth_start = time.perf_counter()

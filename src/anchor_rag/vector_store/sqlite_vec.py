@@ -1,7 +1,7 @@
 """Implementação do Vector Store usando SQLite com sqlite-vec."""
 
 from __future__ import annotations
-from typing import List, Optional, Union
+from typing import List, Optional, Tuple, Union
 from uuid import UUID
 import sqlite3
 import sqlite_vec
@@ -237,24 +237,36 @@ class SQLiteVecStore(VectorStore):
         top_k: int = 5,
         threshold: float = 0.0,
     ) -> List[Chunk]:
-        """Busca por similaridade de cosseno usando sqlite-vec."""
+        """Busca por similaridade de cosseno usando sqlite-vec (só os chunks)."""
+        return [c for c, _ in await self.search_with_scores(query_embedding, top_k, threshold)]
+
+    async def search_with_scores(
+        self,
+        query_embedding: List[float],
+        top_k: int = 5,
+        threshold: float = 0.0,
+    ) -> List[Tuple[Chunk, float]]:
+        """Busca por similaridade de cosseno; devolve (chunk, score = 1 - distância de cosseno)."""
         conn = self._get_conn()
         cursor = conn.cursor()
 
         query_blob = self._serialize_embedding(query_embedding)
 
-        # Busca na virtual table - sqlite-vec retorna distance (L2) por padrão
-        # Para cosseno, usamos: 1 - (distance^2 / 2) para vetores normalizados
+        # vec_distance_cosine devolve a distância de cosseno (0 = idêntico, 2 = oposto);
+        # o score é a similaridade de cosseno: 1 - distância.
+        # O alias NÃO pode se chamar "distance": a tabela vec0 tem uma coluna oculta com
+        # esse nome (NULL fora de consultas KNN), e o WHERE passava a filtrar por ela,
+        # descartando todos os resultados.
         cursor.execute(
             """
             SELECT
                 c.id, c.document_id, c.content, c.chunk_index, c.page_number,
                 c.start_char, c.end_char, c.token_count, c.metadata,
-                vec_distance_cosine(chunks_vec.embedding, ?) as distance
+                vec_distance_cosine(chunks_vec.embedding, ?) AS cos_dist
             FROM chunks c
             JOIN chunks_vec ON c.rowid = chunks_vec.rowid
-            WHERE distance <= ?
-            ORDER BY distance ASC
+            WHERE cos_dist <= ?
+            ORDER BY cos_dist ASC
             LIMIT ?
             """,
             (query_blob, 1.0 - threshold, top_k),
@@ -263,8 +275,7 @@ class SQLiteVecStore(VectorStore):
         rows = cursor.fetchall()
         results = []
         for row in rows:
-            # Converte distance L2 para score de cosseno (1 - distance para vetores normalizados)
-            distance = row["distance"]
+            distance = row["cos_dist"]
             score = 1.0 - distance
 
             chunk = Chunk(
@@ -283,7 +294,7 @@ class SQLiteVecStore(VectorStore):
 
         # Ordena por score decrescente
         results.sort(key=lambda x: x[1], reverse=True)
-        return [c for c, _ in results]
+        return results
 
     async def get_chunks_by_doc(self, document_id: UUID) -> List[Chunk]:
         """Recupera todos os chunks de um documento."""
