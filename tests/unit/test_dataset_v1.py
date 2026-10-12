@@ -147,6 +147,7 @@ def test_load_v1_rejeita_injecao_incompleta(tmp_path):
     ("Não é vedado ao correspondente prestar garantia nesse caso [2].", False),
     ("Os detalhes sobre o prazo não estão presentes nos trechos fornecidos.", True),
     ("Não há especificação direta sobre o teto de juros.", True),
+    ("O texto fornecido não contém informações sobre o valor máximo do FGC.", True),
     # responde e só depois ressalva: não é recusa
     ("A política deve ser revisada anualmente [1]. Não encontrei mais detalhes.", False),
 ])

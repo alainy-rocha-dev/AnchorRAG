@@ -97,7 +97,7 @@ _PADROES_RECUSA = [
     r"nao encontrei",
     r"nao (ha|existe|existem|consta|constam|ha nenhuma) (informac|dado|mencao|previsao|referencia|especificac|detalh)",
     r"nao (estao|esta) (present|disponive|contid)",
-    r"(os|nos) (trechos|documentos|textos) (fornecidos )?nao (trazem|contem|mencionam|informam|tratam|abordam|especificam|estabelecem|indicam|apresentam)",
+    r"(os|nos|o|no) (trechos?|documentos?|textos?) (fornecidos? )?nao (traz|trazem|contem|menciona|mencionam|informa|informam|trata|tratam|aborda|abordam|especifica|especificam|estabelece|estabelecem|indica|indicam|apresenta|apresentam)",
     r"nao (e|esta) (mencionad|informad|especificad|previst|abordad|tratad)",
     r"nao (posso|consigo|sou capaz de|tenho como) (ajudar|responder|fornecer|compartilhar|revelar|informar|mostrar|divulgar|atender)",
     r"fora do (escopo|contexto)",
