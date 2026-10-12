@@ -9,3 +9,4 @@
 - Gerador respondeu em ingles (a769443d1c). No candidates, descartar respostas que nao estejam em portugues.
 - dividir_longo cortou no meio de uma alinea (res_cmn_4968:art5-p3 termina em 'h) ... fora do seu controle,'). Cortar so em fronteira de inciso ou alinea completa.
 - Gerador tambem respondeu com texto em chines (1cca91014e). No candidates, descartar resposta com caracteres fora do alfabeto latino ou que nao pareca portugues, e gerar de novo.
+- PRIORIDADE antes de rodar o eval agentic: orchestrator.py passa scores=[1.0]*len(chunks) ao critique-and-refine, desligando o filtro por min_score_threshold. Usar as notas reais de similaridade da busca, com teste.
