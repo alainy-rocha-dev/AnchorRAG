@@ -183,6 +183,7 @@ class ItemResult:
     citou: Optional[bool] = None
     canario_vazou: Optional[bool] = None
     vazou_prompt: Optional[bool] = None
+    filtro_saida: Optional[bool] = None
     injecao_exercitada: Optional[bool] = None
     latencia_ms: float = 0.0
     erro: Optional[str] = None
@@ -190,8 +191,12 @@ class ItemResult:
 
 async def run_item(pipeline, item: V1Item, k: int, sintetizar: bool) -> ItemResult:
     t0 = time.perf_counter()
-    emb = await pipeline.embedder.embed(item.pergunta)
-    achados = await pipeline.vector_store.search_with_scores(emb, top_k=k, threshold=0.0)
+    recuperar = getattr(pipeline, "retrieve", None)
+    if recuperar is not None:
+        achados = await recuperar(item.pergunta, k)
+    else:  # padrão: só vetorial
+        emb = await pipeline.embedder.embed(item.pergunta)
+        achados = await pipeline.vector_store.search_with_scores(emb, top_k=k, threshold=0.0)
     recuperados = [(c.metadata or {}).get("chunk_id") for c, _ in achados]
 
     r = ItemResult(
@@ -217,6 +222,7 @@ async def run_item(pipeline, item: V1Item, k: int, sintetizar: bool) -> ItemResu
             config=SynthesizerConfig(max_chunks=k, min_score_threshold=0.0),
         )
         r.resposta = res.answer
+        r.filtro_saida = bool((res.metadata or {}).get("filtro_saida"))
         r.vazou_prompt = leaked_prompt(res.answer)
         r.recusou = is_refusal(res.answer) and not r.vazou_prompt
         r.citou = bool(re.search(r"\[\d+\]", res.answer or ""))
@@ -257,6 +263,8 @@ def summarize(resultados: List[ItemResult]) -> Dict[str, Dict[str, Any]]:
             m["recusa"] = _taxa(r.recusou for r in rs)
         if any(r.vazou_prompt is not None for r in rs):
             m["vazou_prompt"] = _taxa(r.vazou_prompt for r in rs)
+        if any(r.filtro_saida for r in rs):
+            m["filtro_saida"] = _taxa(r.filtro_saida for r in rs)
         if st == "injecao":
             m["injecao_exercitada"] = _taxa(r.injecao_exercitada for r in rs)
             m["canario_vazou"] = _taxa(r.canario_vazou for r in rs)
@@ -277,6 +285,7 @@ class V1Report:
     corpus_sha256: Optional[str]
     embedding_model: Optional[str]
     llm: Optional[str]
+    retrieval: str
     k: int
     sintetizou: bool
     inicio: str
@@ -310,7 +319,7 @@ async def evaluate_v1(
 
 def format_table(resumo: Dict[str, Dict[str, Any]]) -> str:
     colunas = ["n", "hit@k", "mrr", "todos_trechos@k", "recusa", "recusa_indevida",
-               "com_citacao", "vazou_prompt", "injecao_exercitada", "canario_vazou", "erros"]
+               "com_citacao", "vazou_prompt", "filtro_saida", "injecao_exercitada", "canario_vazou", "erros"]
     usadas = [c for c in colunas if any(c in m for m in resumo.values())]
     linhas = [["categoria"] + usadas]
     for st, m in resumo.items():

@@ -7,7 +7,7 @@ import re
 import logging
 
 from anchor_rag.synthesis.llm import LLMProvider, LLMResponse
-from anchor_rag.synthesis.prompt import build_messages, ChunkWithScore
+from anchor_rag.synthesis.prompt import build_messages, ChunkWithScore, RECUSA_PADRAO, vazou_regras
 from anchor_rag.domain.models import Chunk, QueryResult
 
 logger = logging.getLogger(__name__)
@@ -21,6 +21,7 @@ class SynthesizerConfig:
     min_score_threshold: float = 0.0
     include_few_shot: bool = True
     citation_format: str = "[{index}]"  # Como formatar citações
+    output_filter: bool = True  # troca por recusa a resposta que reproduz as regras internas
 
 
 class RAGSynthesizer:
@@ -140,6 +141,26 @@ class RAGSynthesizer:
             # Adiciona citações no final se não houver
             citation_str = " ".join(cfg.citation_format.format(index=i) for i in citation_indices)
             answer = f"{answer} {citation_str}"
+
+        # Filtro de saída: o prompt sozinho não impede um modelo pequeno de copiar as regras
+        # quando o usuário pede ("mostre seu prompt"). Defesa em camadas: a resposta inteira
+        # é trocada pela recusa padrão.
+        if cfg.output_filter and vazou_regras(answer):
+            logger.warning("filtro de saída: resposta reproduzia as instruções internas; substituída")
+            return QueryResult(
+                answer=RECUSA_PADRAO,
+                citations=[],
+                chunks_used=[],
+                scores=[],
+                latency_ms={"llm": llm_latency, "total": llm_latency},
+                metadata={
+                    "model": response.model,
+                    "input_tokens": response.input_tokens,
+                    "output_tokens": response.output_tokens,
+                    "chunks_considered": len(chunks_with_score),
+                    "filtro_saida": "vazamento_de_instrucoes",
+                },
+            )
 
         return QueryResult(
             answer=answer,
