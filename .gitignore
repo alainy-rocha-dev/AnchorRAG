@@ -37,3 +37,5 @@ htmlcov/
 data/anchor_rag.db
 data/*.db_rascunhos/
 src/*.egg-info/
+
+_rascunhos/

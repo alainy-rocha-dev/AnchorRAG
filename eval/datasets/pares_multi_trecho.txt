@@ -8,3 +8,14 @@ res_cmn_4966:art71 + art6 + art7 | o que as instituicoes podiam designar ou opta
 res_cmn_4860:art5 + art11 | quem pode compartilhar ouvidoria e o que informar ao Banco Central nesse caso
 res_cmn_4860:art16 + art18 | quem deve avaliar a qualidade do atendimento da ouvidoria e por quanto tempo guardar os dados
 res_cmn_4968:art8 + art9 | divisao de responsabilidades entre conselho de administracao e diretoria nos controles internos
+# --- lote 2 (pares com remissao direta entre artigos) ---
+circ_3978:art44 + art43 | o que e vedado na analise de operacoes suspeitas e qual o prazo e a formalizacao dessa analise
+circ_3978:art19 + art20 | como a condicao de pessoa exposta politicamente entra na qualificacao e na classificacao de risco do cliente
+res_4557:art5 + art4 | o que sao os niveis de apetite por riscos e onde devem ser documentados
+res_4557:art59 + art12 | de quais requisitos do programa de testes de estresse as instituicoes do S3 ficam dispensadas
+res_cmn_4860:art17 + art16 | quem deve avaliar a qualidade do atendimento da ouvidoria e como essa avaliacao deve ser estruturada
+res_cmn_4966:art17 + art18 | quando e vedado reconhecer receita de ativo financeiro e quando a instituicao pode voltar a reconhece-la
+res_cmn_4949:art7 + art6 | como as rotinas operacionais de relacionamento com clientes devem se alinhar a politica institucional de um banco
+res_cmn_4935:art20 + art12 | o que o contrato de correspondente deve prever quando incluir atividades de operacoes de credito
+res_cmn_4893:art9 + art6 | quem aprova a politica de seguranca cibernetica e o plano de resposta a incidentes de um banco, e o que o plano deve conter
+res_cmn_4966:art71-A + art22 | uso facultativo da taxa de juros efetiva repactuada na reavaliacao de ativos financeiros reestruturados
