@@ -710,22 +710,84 @@ Se o trecho só fizer sentido junto com outro artigo, devolva {{"pergunta": null
 JSON: {{"pergunta": "...", "resposta_ouro": "..."}}"""
 
 P_MULTI = """Norma (tema): {tema}
-Dois trechos da mesma norma.
-[A] ({cid_a}):
-\"\"\"{a}\"\"\"
-[B] ({cid_b}):
-\"\"\"{b}\"\"\"
-Escreva UMA pergunta que um analista de compliance faria a um assistente sobre
+{n} trechos da mesma norma.
+{trechos}
+{foco}Escreva UMA pergunta que um analista de compliance faria a um assistente sobre
 normas do Banco Central, sem estar vendo estes trechos, e que EXIJA combinar
-informações de A e de B (não respondível só com um).
+informações de todos eles (não respondível com um só).
 - A pergunta deve se sustentar sozinha: nomeie o assunto. Não use "esta resolução",
   "o artigo", "mencionado", "referido", "trecho A", "trecho B".
 - Se a norma se aplica a um tipo específico de instituição (por exemplo, instituições
   de pagamento, corretoras ou bancos), mencione expressamente esse tipo na pergunta.
+  Não atribua a norma a um tipo de instituição que o tema ou os trechos não indiquem.
 - Não cite número de artigo nem de norma.
 Se os trechos não se combinam de forma natural ou não fizerem sentido sozinhos, devolva {{"pergunta": null}}.
-Resposta-ouro: fiel ao texto, em até duas frases ou texto corrido.
+Resposta-ouro: fiel ao texto, em português, em até três frases. Troque referências
+internas ("inciso II do caput") pelo conteúdo delas.
 JSON: {{"pergunta": "...", "resposta_ouro": "..."}}"""
+
+
+def montar_prompt_multi(tema: str, trechos: list[tuple[str, str]], foco: str | None = None) -> str:
+    """Monta o prompt de multi_trecho para 2 ou mais trechos (A, B, C...)."""
+    blocos = "\n".join(
+        f"[{chr(65 + k)}] ({cid}):\n\"\"\"{texto}\"\"\"" for k, (cid, texto) in enumerate(trechos)
+    )
+    linha_foco = f"Foco sugerido pela revisora: {foco}\n" if foco else ""
+    return P_MULTI.format(tema=tema, n=len(trechos), trechos=blocos, foco=linha_foco)
+
+
+def ler_pares(path: Path, ids_existentes: set[str]) -> tuple[list[tuple[list[str], str]], list[str]]:
+    """Le pares escolhidos a mao para multi_trecho.
+
+    Formato, uma linha por par (linhas vazias e com # sao ignoradas):
+        res_4557:art53 + res_4557:art54 | foco opcional
+        res_cmn_4966:art71 + art6 + art7 | ids curtos herdam a norma do primeiro
+    Um id sem sufixo que so exista dividido (art15-p1, art15-p2) inclui todas as partes.
+    Linhas com id inexistente sao ignoradas e reportadas em avisos.
+    """
+    pares: list[tuple[list[str], str]] = []
+    avisos: list[str] = []
+    vistos: set[frozenset] = set()
+    for n, linha in enumerate(path.read_text(encoding="utf-8-sig").splitlines(), 1):
+        linha = linha.strip()
+        if linha.startswith("- "):
+            linha = linha[2:].strip()
+        if not linha or linha.startswith("#"):
+            continue
+        parte_ids, _, foco = linha.partition("|")
+        norma_base = None
+        ids: list[str] = []
+        erro = None
+        for tok in (t.strip() for t in parte_ids.split("+")):
+            if ":" in tok:
+                norma_base = tok.split(":")[0]
+                cid = tok
+            elif norma_base and re.fullmatch(r"art\S+", tok):
+                cid = f"{norma_base}:{tok}"
+            else:
+                erro = f"id invalido '{tok}'"
+                break
+            if cid in ids_existentes:
+                ids.append(cid)
+                continue
+            partes = sorted((i for i in ids_existentes if re.fullmatch(re.escape(cid) + r"-p\d+", i)),
+                            key=lambda i: int(i.rsplit("-p", 1)[1]))
+            if not partes:
+                erro = f"chunk inexistente '{cid}'"
+                break
+            ids.extend(partes)
+        if erro is None and len(ids) < 2:
+            erro = "precisa de pelo menos 2 chunks"
+        if erro:
+            avisos.append(f"linha {n}: {erro} -> ignorada")
+            continue
+        chave = frozenset(ids)
+        if chave in vistos:
+            continue
+        vistos.add(chave)
+        pares.append((ids, foco.strip()))
+    return pares, avisos
+
 
 P_SEM = """Norma (tema): {tema}
 Trecho ({cid}):
@@ -910,29 +972,50 @@ def cmd_candidates(a):
                 salvar(r["pergunta"], r.get("resposta_ouro"), [c["chunk_id"]])
 
     elif cat == "multi_trecho":
-        por_norma: dict[str, list[dict]] = {}
-        for c in usaveis:
-            por_norma.setdefault(c["norma"], []).append(c)
-        filas = []
-        for lst in por_norma.values():
-            rnd.shuffle(lst)
-            filas.append([(lst[i], lst[i + 1]) for i in range(0, len(lst) - 1, 2)])
-        rnd.shuffle(filas)
-        pares = []
-        while any(filas):
-            for f in filas:
-                if f:
-                    pares.append(f.pop())
-        for x, y in pares:
-            if gerados >= a.n:
-                break
-            ids = [x["chunk_id"], y["chunk_id"]]
-            if not cabe(ids):
-                continue
-            tema_c = temas_map.get(x["norma"], x["norma"])
-            r = llm_json(P_MULTI.format(tema=tema_c, cid=cid_a if "cid_a" in locals() else ids[0], a=x["texto"], cid_b=ids[1], b=y["texto"]))
-            if r and r.get("pergunta"):
-                salvar(r["pergunta"], r.get("resposta_ouro"), ids)
+        pares_arq = getattr(a, "pares", None)
+        if pares_arq:
+            # Pares escolhidos a mao: ignoram o limite por norma e o filtro de tamanho.
+            ja_feitos = {frozenset(it.get("chunk_ids_relevantes", [])) for it in previos.values()
+                         if it.get("categoria") == "multi_trecho"}
+            pares_manuais, avisos = ler_pares(Path(pares_arq), set(chunks_por_id))
+            for aviso in avisos:
+                print(f"!! {aviso}")
+            for ids, foco in pares_manuais:
+                if gerados >= a.n:
+                    break
+                if frozenset(ids) in ja_feitos:
+                    print(f"  ja existe candidata para {' + '.join(ids)}; pulando")
+                    continue
+                tema_c = temas_map.get(norma_de(ids[0]), norma_de(ids[0]))
+                r = llm_json(montar_prompt_multi(tema_c, [(c, chunks_por_id[c]) for c in ids], foco or None))
+                if r and r.get("pergunta"):
+                    salvar(r["pergunta"], r.get("resposta_ouro"), ids, {"par_manual": True, "foco": foco})
+                else:
+                    print(f"  gerador devolveu null para {' + '.join(ids)}")
+        else:
+            por_norma: dict[str, list[dict]] = {}
+            for c in usaveis:
+                por_norma.setdefault(c["norma"], []).append(c)
+            filas = []
+            for lst in por_norma.values():
+                rnd.shuffle(lst)
+                filas.append([(lst[i], lst[i + 1]) for i in range(0, len(lst) - 1, 2)])
+            rnd.shuffle(filas)
+            pares = []
+            while any(filas):
+                for f in filas:
+                    if f:
+                        pares.append(f.pop())
+            for x, y in pares:
+                if gerados >= a.n:
+                    break
+                ids = [x["chunk_id"], y["chunk_id"]]
+                if not cabe(ids):
+                    continue
+                tema_c = temas_map.get(x["norma"], x["norma"])
+                r = llm_json(montar_prompt_multi(tema_c, [(ids[0], x["texto"]), (ids[1], y["texto"])]))
+                if r and r.get("pergunta"):
+                    salvar(r["pergunta"], r.get("resposta_ouro"), ids)
 
     elif cat == "sem_resposta":
         for c in livres():
@@ -984,8 +1067,9 @@ def cmd_candidates(a):
 # 3. review
 # ----------------------------------------------------------------------------
 def cmd_review(a):
-    # isatty check bypassed for automated review
-    pass
+    # O review exige uma pessoa no terminal: nenhum processo automatico pode aprovar itens.
+    if not sys.stdin.isatty():
+        sys.exit("o review exige uma pessoa no terminal")
     chunks = {c["chunk_id"]: c for c in read_jsonl(Path(a.chunks))}
     cand = read_jsonl(Path(a.cand))
     # Validação estrita: itens sem o campo 'categoria' não são tolerados silenciosamente
@@ -1012,7 +1096,7 @@ def cmd_review(a):
             texto = chunks.get(cid, {}).get('texto', '(chunk não encontrado)')
             if texto != '(chunk não encontrado)':
                 texto = texto.replace('\u200b', '')  # remove zero-width spaces
-            print(f"\n--- {cid} ---\n{texto[:1500]}")
+            print(f"\n--- {cid} ---\n{texto}")
         if it["categoria"] == "sem_resposta":
             print(f"\n!! overlap lexical máx. = {it.get('overlap_max')} "
                   f"({it.get('overlap_chunk')}). Se > 0.6, busque no corpus se a resposta existe.")
@@ -1040,7 +1124,12 @@ def cmd_review(a):
             if op == "e":
                 p = input("Nova pergunta (Enter mantém): ").strip()
                 o = input("Nova resposta_ouro (Enter mantém): ").strip()
-                ids = input("chunk_ids separados por vírgula (Enter mantém): ").strip()
+                while True:
+                    ids = input("chunk_ids separados por vírgula (Enter mantém): ").strip()
+                    invalidos = [x.strip() for x in ids.split(",") if x.strip() and x.strip() not in chunks] if ids else []
+                    if not invalidos:
+                        break
+                    print(f"!! chunk_id inexistente: {', '.join(invalidos)}. Digite de novo (ou Enter para manter).")
                 nota = input("Nota/motivo da edição (opcional, Enter pula): ").strip()
                 if p:
                     it["pergunta"] = p
@@ -1147,6 +1236,8 @@ def main():
     p.add_argument("--out", default=str(DEF_CAND))
     p.add_argument("--v1", default=str(DEF_V1))
     p.add_argument("--rej", default=str(DEF_REJ))
+    p.add_argument("--pares", default=None,
+                   help="(multi_trecho) arquivo com pares escolhidos a mao: 'id_a + id_b | foco'")
     p.add_argument("--max-por-norma", type=int, default=15,
                    help="máx. de chunks distintos por norma no dataset (não afeta chunks.jsonl)")
     p.set_defaults(fn=cmd_candidates)

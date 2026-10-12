@@ -1,0 +1,10 @@
+# Pares escolhidos a mao para multi_trecho (um por linha): id_a + id_b [+ id_c] | foco
+# Ids curtos (art6) herdam a norma do primeiro. Artigo dividido (art15) inclui todas as partes.
+res_4557:art53 + art54 | o que as estruturas unificadas de gerenciamento de riscos e de capital do conglomerado prudencial devem fazer
+res_4557:art6 + art54 | quais riscos a estrutura de capital do conglomerado considera ao avaliar impactos no capital e na liquidez
+circ_3978:art43 + art46 | prazo para analisar operacoes suspeitas e possibilidade de centralizar a analise no grupo
+res_cmn_4935:art14-p1 + art14-p2 | vedacao do contrato de correspondente e a excecao para financiamento de bens e servicos do proprio correspondente
+res_cmn_4966:art71 + art6 + art7 | o que as instituicoes podiam designar ou optar em janeiro de 2025 para a carteira existente
+res_cmn_4860:art5 + art11 | quem pode compartilhar ouvidoria e o que informar ao Banco Central nesse caso
+res_cmn_4860:art16 + art18 | quem deve avaliar a qualidade do atendimento da ouvidoria e por quanto tempo guardar os dados
+res_cmn_4968:art8 + art9 | divisao de responsabilidades entre conselho de administracao e diretoria nos controles internos
