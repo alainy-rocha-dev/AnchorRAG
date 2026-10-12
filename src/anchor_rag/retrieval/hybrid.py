@@ -141,6 +141,44 @@ class HybridRetriever:
         
         return fused_chunks
 
+    async def retrieve_with_scores(
+        self,
+        query: str,
+        top_k: Optional[int] = None,
+        mode: str = "hybrid",
+        rrf_k: int = 60,
+        pool_factor: int = 3,
+    ) -> List[Tuple[Chunk, float]]:
+        """Recupera (chunk, score) no modo pedido: "vector", "fts" ou "hybrid" (RRF).
+
+        No híbrido, cada busca traz top_k * pool_factor candidatos, e o score devolvido
+        é o RRF. Usado pela avaliação para comparar os modos com o mesmo k.
+        """
+        k = top_k or self.top_k
+        if mode == "fts":
+            return await self.fts_store.search(query, k)
+
+        emb = await self.embedder(query)
+        if mode == "vector":
+            return await self.vector_store.search_with_scores(emb, top_k=k, threshold=0.0)
+        if mode != "hybrid":
+            raise ValueError(f"modo de recuperação desconhecido: {mode!r}")
+
+        pool = k * pool_factor
+        vetoriais = await self.vector_store.search_with_scores(emb, top_k=pool, threshold=0.0)
+        textuais = await self.fts_store.search(query, pool)
+        por_id = {c.id: c for c, _ in vetoriais}
+        for c, _ in textuais:
+            por_id.setdefault(c.id, c)
+        fundidos = rrf_fusion([[c.id for c, _ in vetoriais], [c.id for c, _ in textuais]], k=rrf_k)
+        resultado = [(por_id[cid], score) for cid, score in fundidos[:k]]
+
+        if self.reranker and resultado:
+            candidatos = [por_id[cid] for cid, _ in fundidos[: k * 2]]
+            reordenados = await self.reranker(query, candidatos)
+            resultado = list(reordenados[:k])
+        return resultado
+
     async def retrieve_vector_only(
         self,
         query: str,

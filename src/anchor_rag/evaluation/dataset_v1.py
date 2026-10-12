@@ -190,8 +190,12 @@ class ItemResult:
 
 async def run_item(pipeline, item: V1Item, k: int, sintetizar: bool) -> ItemResult:
     t0 = time.perf_counter()
-    emb = await pipeline.embedder.embed(item.pergunta)
-    achados = await pipeline.vector_store.search_with_scores(emb, top_k=k, threshold=0.0)
+    recuperar = getattr(pipeline, "retrieve", None)
+    if recuperar is not None:
+        achados = await recuperar(item.pergunta, k)
+    else:  # padrão: só vetorial
+        emb = await pipeline.embedder.embed(item.pergunta)
+        achados = await pipeline.vector_store.search_with_scores(emb, top_k=k, threshold=0.0)
     recuperados = [(c.metadata or {}).get("chunk_id") for c, _ in achados]
 
     r = ItemResult(
@@ -277,6 +281,7 @@ class V1Report:
     corpus_sha256: Optional[str]
     embedding_model: Optional[str]
     llm: Optional[str]
+    retrieval: str
     k: int
     sintetizou: bool
     inicio: str

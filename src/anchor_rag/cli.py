@@ -104,6 +104,11 @@ def ingest_chunks(
                 corpus, store, embedder, embedding_model=cfg.embedding.model,
                 batch_size=batch_size, on_progress=progresso,
             )
+            from anchor_rag.retrieval.fts import FTS5Store
+            fts = FTS5Store(str(db))
+            if await fts.ensure_fts():
+                typer.echo("  índice FTS construído")
+            await fts.close()
         finally:
             await store.close()
             fechar = getattr(embedder, "close", None)
@@ -129,6 +134,7 @@ def eval_v1(
     db: Path = typer.Option(Path("data/bcb.db"), "--db", help="Base carregada com ingest-chunks"),
     corpus: Path = typer.Option(Path("corpus/chunks.jsonl"), "--corpus", help="Corpus esperado na base (conferido por hash)"),
     k: int = typer.Option(5, "--k", help="Chunks recuperados por pergunta"),
+    retrieval: str = typer.Option("vector", "--retrieval", help="vector, fts ou hybrid (RRF vetorial + BM25)"),
     no_synthesis: bool = typer.Option(False, "--no-synthesis", help="Só recuperação (rápido, sem LLM)"),
     limit: Optional[int] = typer.Option(None, "--limit", help="Avalia só os N primeiros itens (teste rápido)"),
     categoria: Optional[str] = typer.Option(None, "--categoria", help="Filtra por subtipo (ex.: injecao)"),
@@ -147,6 +153,8 @@ def eval_v1(
         V1Report, evaluate_v1, file_sha256, format_table, load_v1, summarize,
     )
     from anchor_rag.ingestion.corpus_loader import META_EMBEDDING_MODEL, check_corpus
+    from anchor_rag.retrieval.fts import FTS5Store
+    from anchor_rag.retrieval.hybrid import HybridRetriever
     from types import SimpleNamespace
     from anchor_rag.synthesis import create_llm_provider
     from anchor_rag.synthesis.synthesizer import RAGSynthesizer
@@ -167,6 +175,9 @@ def eval_v1(
     if not db.exists():
         typer.echo(f"ERRO: base {db} não existe; rode ingest-chunks antes.", err=True)
         raise typer.Exit(code=1)
+    if retrieval not in ("vector", "fts", "hybrid"):
+        typer.echo(f"ERRO: --retrieval deve ser vector, fts ou hybrid (recebido {retrieval!r})", err=True)
+        raise typer.Exit(code=1)
 
     itens = load_v1(dataset)
     if categoria:
@@ -177,6 +188,7 @@ def eval_v1(
     async def run():
         embedder = create_embedding_provider(cfg.embedding)
         store = SQLiteVecStore(str(db), embedding_dimensions=embedder.dimensions)
+        fts = FTS5Store(str(db))
         try:
             aviso = await check_corpus(store, corpus)
             if aviso:
@@ -187,10 +199,18 @@ def eval_v1(
                     f"a base foi carregada com o embedding '{modelo_base}', "
                     f"mas a avaliação usaria '{cfg.embedding.model}' (use --embedding-model)"
                 )
-            # Só as peças que a avaliação usa: embedder, store e (se houver síntese) o sintetizador.
+            if retrieval in ("fts", "hybrid") and await fts.ensure_fts():
+                typer.echo("  índice FTS (re)construído")
+            retriever = HybridRetriever(vector_store=store, fts_store=fts, embedder=embedder.embed)
+
+            async def recuperar(pergunta, kk):
+                return await retriever.retrieve_with_scores(pergunta, top_k=kk, mode=retrieval)
+
+            # Só as peças que a avaliação usa: recuperação e (se houver síntese) o sintetizador.
             pipeline = SimpleNamespace(
                 embedder=embedder,
                 vector_store=store,
+                retrieve=recuperar,
                 synthesizer=None if no_synthesis else RAGSynthesizer(create_llm_provider(cfg.llm)),
             )
 
@@ -200,13 +220,14 @@ def eval_v1(
 
             return await evaluate_v1(pipeline, itens, k=k, sintetizar=not no_synthesis, on_item=progresso), await store.get_meta("corpus_hash")
         finally:
+            await fts.close()
             await store.close()
             fechar = getattr(embedder, "close", None)
             if fechar:
                 await fechar()
 
     inicio = datetime.now()
-    typer.echo(f"Avaliando {len(itens)} itens  (k={k}, embedding {cfg.embedding.model}, "
+    typer.echo(f"Avaliando {len(itens)} itens  (k={k}, recuperação {retrieval}, embedding {cfg.embedding.model}, "
                f"{'sem síntese' if no_synthesis else 'LLM ' + cfg.llm.provider + ':' + cfg.llm.model})")
     try:
         resultados, corpus_hash = asyncio.run(run())
@@ -221,6 +242,7 @@ def eval_v1(
         corpus_sha256=corpus_hash,
         embedding_model=f"{cfg.embedding.provider}:{cfg.embedding.model}",
         llm=None if no_synthesis else f"{cfg.llm.provider}:{cfg.llm.model}",
+        retrieval=retrieval,
         k=k,
         sintetizou=not no_synthesis,
         inicio=inicio.isoformat(timespec="seconds"),
@@ -229,7 +251,8 @@ def eval_v1(
         itens=[r.__dict__ for r in resultados],
     )
     out.mkdir(parents=True, exist_ok=True)
-    destino = out / f"v1_{inicio.strftime('%Y%m%d-%H%M%S')}{'_retrieval' if no_synthesis else ''}.json"
+    sufixo = ("" if retrieval == "vector" else f"_{retrieval}") + ("_retrieval" if no_synthesis else "")
+    destino = out / f"v1_{inicio.strftime('%Y%m%d-%H%M%S')}{sufixo}.json"
     destino.write_text(relatorio.to_json(), encoding="utf-8")
 
     typer.echo("")

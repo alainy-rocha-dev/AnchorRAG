@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import List, Optional, Tuple
 from uuid import UUID
+import json
+import re
 import sqlite3
 import logging
 from pathlib import Path
@@ -11,6 +13,51 @@ from pathlib import Path
 from anchor_rag.vector_store.base import VectorStore, Chunk
 
 logger = logging.getLogger(__name__)
+
+# Versão do esquema/tokenizador do índice. Mudou -> ensure_fts() recria e reindexa.
+# v2: 'unicode61 remove_diacritics 2' (o 'porter' anterior é um stemmer de INGLÊS).
+FTS_VERSION = "2"
+
+# Palavras sem valor de busca: artigos, preposições, pronomes e interrogativos.
+STOPWORDS_PT = frozenset("""
+a o as os um uma uns umas de da do das dos em na no nas nos por pela pelo pelas pelos
+para pra com sem sob sobre entre ate apos ao aos e ou mas nem que se ja nao sim
+eu tu ele ela nos vos eles elas me te lhe lhes meu minha seu sua seus suas nosso nossa
+este esta estes estas esse essa esses essas isto isso aquele aquela aquilo
+qual quais quando onde como quanto quanta quantos quantas quem porque pois
+ser estar ter haver sao foi era sera seria tem tinha deve devem pode podem ha
+mais menos muito muita muitos muitas outro outra outros outras mesmo mesma todo toda todos todas
+cada qualquer quaisquer algum alguma alguns algumas nenhum nenhuma
+""".split())
+
+
+def _sem_acento(s: str) -> str:
+    import unicodedata
+    s = unicodedata.normalize("NFKD", s.lower())
+    return "".join(c for c in s if not unicodedata.combining(c))
+
+
+def build_fts_query(query: str, prefix_len: int = 7) -> Optional[str]:
+    """Monta a consulta FTS5: termos relevantes, cada um como radical com prefixo, unidos por OR.
+
+    Sem stemmer de português no FTS5, o radical com '*' aproxima flexões
+    ("centralizar", "centralizada", "centralização" -> "central"*). Stopwords saem para não
+    casar com quase todo trecho. O BM25 dá peso maior a quem casa termos mais raros.
+    Devolve None se não sobrar termo.
+    """
+    termos = re.findall(r"\w+", _sem_acento(query))
+    vistos, partes = set(), []
+    for t in termos:
+        if t in STOPWORDS_PT:
+            continue
+        if not t.isdigit() and len(t) < 3:
+            continue
+        raiz = t if (t.isdigit() or len(t) <= prefix_len) else t[:prefix_len]
+        if raiz in vistos:
+            continue
+        vistos.add(raiz)
+        partes.append(f'"{raiz}"' if t.isdigit() else f'"{raiz}"*')
+    return " OR ".join(partes) if partes else None
 
 
 class FTS5Store:
@@ -42,7 +89,7 @@ class FTS5Store:
                 page_number UNINDEXED,
                 norma UNINDEXED,
                 artigo UNINDEXED,
-                tokenize='porter unicode61'
+                tokenize='unicode61 remove_diacritics 2'
             )
         """)
 
@@ -78,6 +125,34 @@ class FTS5Store:
         conn.commit()
         logger.info("FTS5 inicializado com triggers de sincronismo")
 
+    async def ensure_fts(self) -> bool:
+        """Garante índice FTS na versão atual; recria e reindexa se faltar ou estiver velho.
+
+        Devolve True se (re)construiu o índice.
+        """
+        conn = self._get_conn()
+        conn.execute("CREATE TABLE IF NOT EXISTS store_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
+        row = conn.execute("SELECT value FROM store_meta WHERE key = 'fts_version'").fetchone()
+        existe = conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='chunks_fts'"
+        ).fetchone()
+        if existe and row and row["value"] == FTS_VERSION:
+            return False
+        for trig in ("chunks_ai", "chunks_ad", "chunks_au"):
+            conn.execute(f"DROP TRIGGER IF EXISTS {trig}")
+        conn.execute("DROP TABLE IF EXISTS chunks_fts")
+        conn.commit()
+        await self.init_fts()
+        n = await self.rebuild_fts()
+        conn.execute(
+            "INSERT INTO store_meta (key, value) VALUES ('fts_version', ?) "
+            "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+            (FTS_VERSION,),
+        )
+        conn.commit()
+        logger.info(f"Índice FTS v{FTS_VERSION} construído: {n} chunks")
+        return True
+
     async def search(
         self,
         query: str,
@@ -95,8 +170,10 @@ class FTS5Store:
         cursor = conn.cursor()
 
         # Monta query FTS5
-        fts_query = self._build_fts_query(query)
-        
+        fts_query = build_fts_query(query)
+        if fts_query is None:
+            return []
+
         where_clauses = ["chunks_fts MATCH ?"]
         params: List = [fts_query]
         
@@ -113,7 +190,7 @@ class FTS5Store:
                 c.start_char, c.end_char, c.token_count, c.metadata,
                 bm25(chunks_fts) as bm25_score
             FROM chunks_fts
-            JOIN chunks c ON c.id = chunks_fts.chunk_id
+            JOIN chunks c ON c.rowid = chunks_fts.rowid
             WHERE {' AND '.join(where_clauses)}
             ORDER BY bm25_score ASC
             LIMIT ?
@@ -125,9 +202,9 @@ class FTS5Store:
 
         results = []
         for row in rows:
-            # BM25: menor = melhor. Converte para score 0-1 (inverso)
-            bm25_raw = row["bm25_score"]
-            score = 1.0 / (1.0 + bm25_raw) if bm25_raw > 0 else 1.0
+            # bm25() do FTS5 é negativo (mais negativo = mais relevante); o score é o oposto.
+            # Antes: 1/(1+raw) só para raw > 0, que nunca ocorre -> todo score saía 1.0.
+            score = -row["bm25_score"]
 
             chunk = Chunk(
                 id=UUID(row["id"]),
@@ -145,24 +222,9 @@ class FTS5Store:
 
         return results
 
-    def _build_fts_query(self, query: str) -> str:
-        """Constrói query FTS5 com operadores booleanos e prefixos."""
-        # Escapa caracteres especiais FTS5
-        escaped = query.replace('"', '""').replace("'", "''")
-        
-        # Divide em termos e adiciona prefixo * para busca parcial
-        terms = escaped.split()
-        if not terms:
-            return '""'
-        
-        # Usa NEAR para proximidade e OR entre termos principais
-        if len(terms) == 1:
-            return f'"{terms[0]}"*'
-        
-        # Combina: frase exata OU termos individuais com prefixo
-        phrase = f'"{escaped}"'
-        prefixed = " OR ".join(f'"{t}"*' for t in terms)
-        return f"({phrase}) OR ({prefixed})"
+    def _build_fts_query(self, query: str) -> Optional[str]:
+        """Compatibilidade: use build_fts_query()."""
+        return build_fts_query(query)
 
     async def rebuild_fts(self) -> int:
         """Reconstrói índice FTS5 a partir da tabela chunks (útil na primeira vez)."""
@@ -190,6 +252,3 @@ class FTS5Store:
         if self._conn:
             self._conn.close()
             self._conn = None
-
-
-import json  # noqa: E402
