@@ -9,7 +9,7 @@ from uuid import uuid4
 from anchor_rag.domain.models import Chunk, QueryConfig, QueryResult
 from anchor_rag.evaluation.critique_refine import CritiqueAndRefineSynthesizer, CritiqueAndRefineResult
 from anchor_rag.evaluation.evaluator import EvaluatorProvider
-from anchor_rag.synthesis.synthesizer import RAGSynthesizer
+from anchor_rag.synthesis.synthesizer import RAGSynthesizer, SynthesizerConfig
 
 
 class MockEvaluator(EvaluatorProvider):
@@ -111,7 +111,8 @@ def sample_chunks():
 
 @pytest.fixture
 def query_config():
-    return QueryConfig(top_k=5, threshold=0.7)
+    # Mesmo tipo de config que o orchestrator passa em producao (SynthesizerConfig, nao QueryConfig).
+    return SynthesizerConfig(max_chunks=5, min_score_threshold=0.7)
 
 
 @pytest.fixture
@@ -312,3 +313,32 @@ class TestCritiqueAndRefineSynthesizer:
 
         # Judge chamado 3 vezes (1 por iteração)
         assert evaluator.eval_call_count == 3
+
+
+    @pytest.mark.asyncio
+    async def test_refines_with_default_config(self, sample_chunks, sample_scores):
+        """Com config=None (default do orchestrator), o refinamento deve rodar, nao falhar em silencio."""
+        evaluator = MockEvaluator([
+            {"faithfulness": 0.5, "answer_relevancy": 0.5, "context_precision": 0.5, "context_recall": 0.5},
+            {"faithfulness": 0.9, "answer_relevancy": 0.9, "context_precision": 0.9, "context_recall": 0.9},
+        ])
+        synthesizer = MockSynthesizer(["Resposta base"])
+
+        critique_refine = CritiqueAndRefineSynthesizer(
+            synthesizer=synthesizer,
+            evaluator=evaluator,
+            thresholds={"faithfulness": 0.7, "answer_relevancy": 0.7, "context_precision": 0.7, "context_recall": 0.7},
+            max_iterations=2,
+        )
+
+        result, trail_result = await critique_refine.synthesize(
+            query="Qual a taxa Selic?",
+            chunks=sample_chunks,
+            scores=sample_scores,
+            config=None,
+        )
+
+        assert trail_result.total_iterations == 2
+        assert trail_result.stopped_reason == "threshold_met"
+        assert trail_result.trail[1].critique is not None
+        assert result.answer != "Resposta base"

@@ -5,11 +5,15 @@ import logging
 from uuid import uuid4
 from dataclasses import dataclass, field
 
-from anchor_rag.domain.models import Chunk, QueryResult, QueryConfig
+from anchor_rag.domain.models import Chunk, QueryResult
 from anchor_rag.synthesis.synthesizer import RAGSynthesizer, SynthesizerConfig
 from anchor_rag.evaluation.evaluator import EvaluatorProvider
 
 logger = logging.getLogger(__name__)
+
+# Limite de tokens da resposta refinada. Antes dependia de config.llm_model, campo que
+# SynthesizerConfig nao tem: o AttributeError era engolido e o refinamento nunca rodava.
+REFINE_MAX_TOKENS = 1024
 
 
 @dataclass
@@ -236,7 +240,7 @@ class CritiqueAndRefineSynthesizer:
         self,
         query: str,
         chunks: List[Chunk],
-        config: QueryConfig,
+        config: Optional[SynthesizerConfig],
         previous_answer: str,
         critique: str,
     ) -> Optional[QueryResult]:
@@ -263,7 +267,7 @@ class CritiqueAndRefineSynthesizer:
             refined_text = await self.synthesizer.llm.generate(
                 prompt=refine_prompt,
                 temperature=0.1,  # Baixa temperatura para consistência
-                max_tokens=config.llm_model is not None and 2048 or 1024,
+                max_tokens=REFINE_MAX_TOKENS,
             )
 
             # Extrai citações do texto refinado (reusa lógica do sintetizador)

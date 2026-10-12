@@ -39,3 +39,4 @@ data/*.db_rascunhos/
 src/*.egg-info/
 
 _rascunhos/
+*.egg-info/
