@@ -1,6 +1,5 @@
 """LLM-as-Judge Evaluator Providers - Strategy Pattern for RAG evaluation."""
 
-from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import List, Optional, Dict, Any
 import asyncio

@@ -356,12 +356,21 @@ def generate_dataset(output_path: Path, seed: int = 42) -> list[EvalItem]:
 
 def main():
     parser = argparse.ArgumentParser(description="Cria dataset de avaliação v1")
-    parser.add_argument("--output", default="eval/datasets/v1.jsonl", help="Arquivo de saída JSONL")
+    parser.add_argument("--output", default="eval/datasets/legacy/mock_v1.jsonl", help="Arquivo de saída JSONL (antigo default era v1.jsonl, alterado para proteger dataset oficial)")
     parser.add_argument("--seed", type=int, default=42, help="Seed para reprodutibilidade")
     parser.add_argument("--from-norms", help="Diretório com normas processadas (opcional, usa dados reais)")
     args = parser.parse_args()
     
     output_path = Path(args.output)
+    
+    # Proteção de segurança: scripts/create_eval_dataset.py gerava mock sintético antigo (Feature 003).
+    # O dataset v1 oficial agora é construído e revisado via eval/build_dataset.py.
+    if output_path.resolve() == Path("eval/datasets/v1.jsonl").resolve():
+        sys.exit(
+            "ERRO: scripts/create_eval_dataset.py é um script legado (mock sintético da feature 003) "
+            "e está OBSOLETO. Gravar em eval/datasets/v1.jsonl é terminantemente proibido para impedir "
+            "sobrescrever o dataset oficial revisado. Destino default agora é eval/datasets/legacy/mock_v1.jsonl."
+        )
     
     if args.from_norms:
         # TODO: Implementar geração a partir de normas reais processadas

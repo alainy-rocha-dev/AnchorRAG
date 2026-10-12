@@ -394,13 +394,19 @@ class RAGPipeline:
                     continue
 
                 chunks = search_results
+                scores = [1.0] * len(chunks)
 
                 # 2. Critique-and-Refine synthesis
                 synth_start = time.perf_counter()
+                synth_config = SynthesizerConfig(
+                    max_chunks=query_config.top_k,
+                    min_score_threshold=query_config.threshold,
+                )
                 query_result, refine_result = await critique_synthesizer.synthesize(
                     query=case.question,
                     chunks=chunks,
-                    config=query_config,
+                    scores=scores,
+                    config=synth_config,
                 )
                 synth_latency = (time.perf_counter() - synth_start) * 1000
 
