@@ -37,5 +37,8 @@ htmlcov/
 data/anchor_rag.db
 data/*.db
 
+# Configura��o pessoal (nunca commitar chaves/API keys)
+config.yaml
+
 # Rascunhos locais
 _rascunhos/
