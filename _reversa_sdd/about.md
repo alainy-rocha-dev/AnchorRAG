@@ -1,0 +1,1 @@
+AnchorRAG — Local-first RAG Pipeline for PDF Ingestion and AI-Assisted Query. Sistema RAG em Python com SQLite+sqlite-vec, processamento de PDFs via pdfplumber/pypdf e síntese com ancoragem estrita, citações few-shot e defesa contra prompt injection. Ingestão modular, embeddings multi-provedor (OpenAI/Ollama/HF) e pipeline completo de query/eval.
