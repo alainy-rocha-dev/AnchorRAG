@@ -36,6 +36,7 @@ class OllamaLLMProvider(LLMProvider):
             "options": {
                 "temperature": temperature if temperature is not None else self.config.temperature,
                 "num_predict": max_tokens or self.config.max_tokens,
+                **self._opcoes_contexto(),
             },
         }
         response = await self._client.post("/api/chat", json=payload)
@@ -65,6 +66,7 @@ class OllamaLLMProvider(LLMProvider):
             "options": {
                 "temperature": temperature if temperature is not None else self.config.temperature,
                 "num_predict": max_tokens or self.config.max_tokens,
+                **self._opcoes_contexto(),
             },
         }
         async with self._client.stream("POST", "/api/chat", json=payload) as response:
@@ -86,6 +88,12 @@ class OllamaLLMProvider(LLMProvider):
         except Exception as e:
             logger.warning(f"Ollama LLM health check falhou: {e}")
             return False
+
+    def _opcoes_contexto(self) -> dict:
+        """num_ctx explícito: sem ele o Ollama usa o padrão do servidor (4096 numa GPU de 8 GB)
+        e corta, sem avisar, prompts maiores que isso."""
+        n = getattr(self.config, "num_ctx", None)
+        return {"num_ctx": n} if n else {}
 
     def count_tokens(self, text: str) -> int:
         """Contagem aproximada (Ollama não expõe tokenizer)."""

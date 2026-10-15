@@ -186,6 +186,10 @@ class ItemResult:
     filtro_saida: Optional[bool] = None
     injecao_exercitada: Optional[bool] = None
     latencia_ms: float = 0.0
+    latencia_recuperacao_ms: Optional[float] = None
+    latencia_llm_ms: Optional[float] = None
+    tokens_entrada: Optional[int] = None
+    tokens_saida: Optional[int] = None
     erro: Optional[str] = None
 
 
@@ -197,11 +201,13 @@ async def run_item(pipeline, item: V1Item, k: int, sintetizar: bool) -> ItemResu
     else:  # padrão: só vetorial
         emb = await pipeline.embedder.embed(item.pergunta)
         achados = await pipeline.vector_store.search_with_scores(emb, top_k=k, threshold=0.0)
+    t_recuperacao = time.perf_counter() - t0
     recuperados = [(c.metadata or {}).get("chunk_id") for c, _ in achados]
 
     r = ItemResult(
         id=item.id, subtipo=item.subtipo, pergunta=item.pergunta, esperados=item.chunk_ids,
         recuperados=recuperados, scores=[round(s, 4) for _, s in achados],
+        latencia_recuperacao_ms=round(t_recuperacao * 1000, 1),
     )
     if item.subtipo in COM_REFERENCIA and item.chunk_ids:
         m = retrieval_metrics(recuperados, item.chunk_ids)
@@ -222,6 +228,11 @@ async def run_item(pipeline, item: V1Item, k: int, sintetizar: bool) -> ItemResu
             config=SynthesizerConfig(max_chunks=k, min_score_threshold=0.0),
         )
         r.resposta = res.answer
+        meta = res.metadata or {}
+        llm_ms = (res.latency_ms or {}).get("llm")
+        r.latencia_llm_ms = round(llm_ms, 1) if llm_ms is not None else None
+        r.tokens_entrada = meta.get("input_tokens")
+        r.tokens_saida = meta.get("output_tokens")
         r.filtro_saida = bool((res.metadata or {}).get("filtro_saida"))
         r.vazou_prompt = leaked_prompt(res.answer)
         r.recusou = is_refusal(res.answer) and not r.vazou_prompt
@@ -274,6 +285,59 @@ def summarize(resultados: List[ItemResult]) -> Dict[str, Dict[str, Any]]:
     return out
 
 
+def _percentil(vals: List[float], p: float) -> Optional[float]:
+    """Percentil com interpolação linear (p entre 0 e 100)."""
+    vals = sorted(v for v in vals if v is not None)
+    if not vals:
+        return None
+    pos = (len(vals) - 1) * p / 100
+    i = int(pos)
+    j = min(i + 1, len(vals) - 1)
+    return round(vals[i] + (vals[j] - vals[i]) * (pos - i), 1)
+
+
+def summarize_cost(resultados: List[ItemResult]) -> Dict[str, Any]:
+    """Latência (p50/p95, total e por etapa) e tokens por resposta, sobre itens sem erro.
+
+    Usa percentis em vez de média: o primeiro item paga o carregamento do modelo no
+    Ollama e distorceria a média.
+    """
+    rs = [r for r in resultados if r.erro is None]
+    out: Dict[str, Any] = {"n": len(rs)}
+    for nome, vals in (
+        ("latencia_ms", [r.latencia_ms for r in rs]),
+        ("latencia_recuperacao_ms", [r.latencia_recuperacao_ms for r in rs]),
+        ("latencia_llm_ms", [r.latencia_llm_ms for r in rs]),
+    ):
+        if any(v is not None for v in vals):
+            out[f"{nome}_p50"] = _percentil(vals, 50)
+            out[f"{nome}_p95"] = _percentil(vals, 95)
+    entrada = [r.tokens_entrada for r in rs if r.tokens_entrada is not None]
+    saida = [r.tokens_saida for r in rs if r.tokens_saida is not None]
+    if entrada or saida:
+        out["respostas_com_tokens"] = max(len(entrada), len(saida))
+        out["tokens_entrada_media"] = round(sum(entrada) / len(entrada), 1) if entrada else None
+        out["tokens_entrada_max"] = max(entrada) if entrada else None
+        out["tokens_saida_media"] = round(sum(saida) / len(saida), 1) if saida else None
+        out["tokens_total"] = sum(entrada) + sum(saida)
+    return out
+
+
+def format_cost(custo: Dict[str, Any]) -> str:
+    def seg(ms):
+        return "-" if ms is None else f"{ms / 1000:.2f}s"
+    linhas = [
+        f"latência por item  p50 {seg(custo.get('latencia_ms_p50'))}  p95 {seg(custo.get('latencia_ms_p95'))}",
+        f"  recuperação      p50 {seg(custo.get('latencia_recuperacao_ms_p50'))}  p95 {seg(custo.get('latencia_recuperacao_ms_p95'))}",
+    ]
+    if "latencia_llm_ms_p50" in custo:
+        linhas.append(f"  LLM              p50 {seg(custo.get('latencia_llm_ms_p50'))}  p95 {seg(custo.get('latencia_llm_ms_p95'))}")
+    if "tokens_total" in custo:
+        linhas.append(f"tokens por resposta  entrada {custo['tokens_entrada_media']} (máx {custo.get('tokens_entrada_max')})"
+                      f"  saída {custo['tokens_saida_media']}  (total {custo['tokens_total']})")
+    return "\n".join(linhas)
+
+
 def file_sha256(path: Path) -> str:
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
@@ -292,6 +356,11 @@ class V1Report:
     duracao_s: float
     resumo: Dict[str, Dict[str, Any]]
     itens: List[Dict[str, Any]] = field(default_factory=list)
+    custo: Dict[str, Any] = field(default_factory=dict)
+    variante: Optional[str] = None
+    git_commit: Optional[str] = None
+    temperatura: Optional[float] = None
+    num_ctx: Optional[int] = None
 
     def to_json(self) -> str:
         return json.dumps(asdict(self), ensure_ascii=False, indent=2)

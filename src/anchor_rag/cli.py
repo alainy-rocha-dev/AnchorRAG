@@ -143,6 +143,8 @@ def eval_v1(
     llm_provider: Optional[str] = typer.Option(None, "--llm-provider", help="Provedor do LLM de síntese"),
     llm_model: Optional[str] = typer.Option(None, "--llm-model", help="Modelo do LLM de síntese"),
     out: Path = typer.Option(Path("eval/results"), "--out", help="Pasta do relatório JSON"),
+    variante: Optional[str] = typer.Option(None, "--variante", help="Rótulo da variante na ablação (ex.: A)"),
+    num_ctx: int = typer.Option(8192, "--num-ctx", help="Ollama: janela de contexto do LLM (evita cortar o prompt)"),
     config: Optional[Path] = typer.Option(None, "--config", "-c", help="Arquivo de configuração"),
 ):
     """Avalia o pipeline com o dataset v1: métricas por categoria e relatório JSON."""
@@ -150,7 +152,8 @@ def eval_v1(
     from datetime import datetime
     from anchor_rag.embeddings import create_embedding_provider
     from anchor_rag.evaluation.dataset_v1 import (
-        V1Report, evaluate_v1, file_sha256, format_table, load_v1, summarize,
+        V1Report, evaluate_v1, file_sha256, format_cost, format_table, load_v1, summarize,
+        summarize_cost,
     )
     from anchor_rag.ingestion.corpus_loader import META_EMBEDDING_MODEL, check_corpus
     from anchor_rag.retrieval.fts import FTS5Store
@@ -171,6 +174,8 @@ def eval_v1(
         cfg.llm.model = llm_model
     cfg.embedding.timeout = max(cfg.embedding.timeout, 120)
     cfg.llm.timeout = max(cfg.llm.timeout, 180)
+    if cfg.llm.provider == "ollama":
+        cfg.llm.num_ctx = num_ctx
 
     if not db.exists():
         typer.echo(f"ERRO: base {db} não existe; rode ingest-chunks antes.", err=True)
@@ -236,6 +241,7 @@ def eval_v1(
         raise typer.Exit(code=1)
 
     resumo = summarize(resultados)
+    custo = summarize_cost(resultados)
     relatorio = V1Report(
         dataset=str(dataset),
         dataset_sha256=file_sha256(dataset),
@@ -249,15 +255,36 @@ def eval_v1(
         duracao_s=round((datetime.now() - inicio).total_seconds(), 1),
         resumo=resumo,
         itens=[r.__dict__ for r in resultados],
+        custo=custo,
+        variante=variante,
+        git_commit=_git_commit(),
+        temperatura=None if no_synthesis else cfg.llm.temperature,
+        num_ctx=None if no_synthesis else cfg.llm.num_ctx,
     )
     out.mkdir(parents=True, exist_ok=True)
-    sufixo = f"_{retrieval}" + ("_retrieval" if no_synthesis else "")
+    sufixo = (f"_{variante}" if variante else "") + f"_{retrieval}" + ("_retrieval" if no_synthesis else "")
     destino = out / f"v1_{inicio.strftime('%Y%m%d-%H%M%S')}{sufixo}.json"
     destino.write_text(relatorio.to_json(), encoding="utf-8")
 
     typer.echo("")
     typer.echo(format_table(resumo))
+    typer.echo("")
+    typer.echo(format_cost(custo))
     typer.echo(f"\nRelatório: {destino}")
+
+
+def _git_commit() -> Optional[str]:
+    """Commit atual (com '+sujo' se houver mudanças rastreadas não commitadas)."""
+    import subprocess
+    try:
+        h = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, timeout=5)
+        if h.returncode != 0:
+            return None
+        sujo = subprocess.run(["git", "status", "--porcelain", "--untracked-files=no"],
+                              capture_output=True, text=True, timeout=5).stdout.strip()
+        return h.stdout.strip() + ("+sujo" if sujo else "")
+    except (OSError, subprocess.SubprocessError):
+        return None
 
 
 def _familia(modelo: str) -> str:
