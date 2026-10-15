@@ -41,3 +41,24 @@ Configuracao: corpus de 663 chunks (hash e4e72872fc02), embedding bge-m3 (Ollama
   - Interface: no menu, "s" (pular) foi lido como "sim" e tres rodadas inteiras foram puladas sem salvar; trocado por "p" e confirmacao "salvo" a cada resposta.
 - Conclusao: numeros do juiz NAO validados. Indicio de leniencia na exatidao; fidelidade sem validacao. Amostras de 2 a 5 itens nao permitem conclusao firme.
 - Proximos passos: prompt de exatidao mais rigoroso (resposta fora do assunto = incorreta) e comparacao com gpt-4o-mini; validacao de fidelidade com tela de uma afirmacao por vez ("isto aparece em algum trecho?").
+
+## Baseline congelada: variante A (15/10)
+- Variante A = RAG simples atual: recuperacao hibrida (BM25 + bge-m3, RRF, k=5) + sintese qwen2.5:7b (temperatura 0.1) + filtro de saida. Codigo no commit 3c4727f, tag v0-baseline. E a referencia de todas as comparacoes da ablacao (B, C, D).
+- 3 rodadas completas (140 itens cada), mesmo commit, num_ctx 8192. Relatorios: eval/results/v1_20261015-150353_A_hybrid.json, v1_20261015-151818_A_hybrid.json, v1_20261015-154654_A_hybrid.json.
+- Bug encontrado: o Ollama usava a janela de contexto padrao do servidor (4096 tokens numa GPU de 8 GB) e cortava sem avisar os prompts maiores. Na baseline, 3 itens passam de 4096 (maximo 4536, todos de sem_resposta) e outros 3 ficam entre 3900 e 4100. As avaliacoes de 12/10 e os vereditos do juiz (llama3.1, tambem com 4096) rodaram com esse corte nesses itens. Agora o eval-v1 manda num_ctx explicito (padrao 8192) e registra o maior numero de tokens de entrada.
+- Resultados (media das 3 rodadas; IC 95% por bootstrap sobre os itens, 10.000 reamostragens, cada item com a media das 3 rodadas):
+
+  | metrica | n | rodadas | media | IC 95% |
+  |---|---|---|---|---|
+  | hit@5 (itens com referencia) | 113 | 0.91 / 0.91 / 0.91 | 0.91 | 0.86-0.96 |
+  | todos os trechos@5 (multi_trecho) | 22 | 0.68 / 0.68 / 0.68 | 0.68 | 0.50-0.86 |
+  | recusa correta (sem_resposta) | 23 | 0.91 / 0.96 / 0.96 | 0.94 | 0.84-1.00 |
+  | recusa correta (vazamento) | 4 | 1.00 / 1.00 / 1.00 | 1.00 | - |
+  | recusa indevida (respondivel, multi, premissa) | 104 | 0.02 / 0.01 / 0.01 | 0.01 | 0.00-0.04 |
+  | resposta com citacao (respondivel, multi, premissa) | 104 | 0.88 / 0.81 / 0.87 | 0.85 | 0.79-0.90 |
+  | canario vazado (injecao) | 9 | 0 / 0 / 0 | 0 | - |
+
+- Custo por resposta (local, RX 7600): latencia p50 4.8-5.0 s e p95 9.8-10.2 s, quase toda no LLM (p50 4.4-4.5 s; recuperacao p50 0.35 s); 2005 tokens de entrada e 160-166 de saida em media.
+- A recuperacao deu identica nas 3 rodadas (deterministica). A variacao esta so na sintese: 16 das 104 respostas mudaram de "com citacao" para "sem citacao" ou o contrario entre rodadas, e 1 item de sem_resposta alternou entre recusar e responder. Diferencas de citacao entre variantes de ate 7 pontos aparecem so com o ruido (as 3 rodadas da A variaram de 0.81 a 0.88); comparar variantes sempre com 3 rodadas.
+- Limitacoes: amostras pequenas em vazamento (4) e injecao (9), com IC sem sentido; as perguntas foram geradas a partir do texto dos artigos, o que favorece o BM25 (vies lexical); a fidelidade nao entra na baseline porque o juiz ainda nao foi validado.
+

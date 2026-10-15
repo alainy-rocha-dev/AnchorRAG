@@ -37,6 +37,7 @@ class LLMConfig(BaseSettings):
     temperature: float = 0.1
     max_tokens: int = 2048
     timeout: int = 30
+    num_ctx: Optional[int] = None  # Ollama: janela de contexto; None = padrão do servidor (pode cortar o prompt)
     api_key_env: str = "OPENAI_API_KEY"
     api_key: Optional[str] = None
     base_url: Optional[str] = None

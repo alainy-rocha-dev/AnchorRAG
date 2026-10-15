@@ -18,6 +18,8 @@ from anchor_rag.evaluation.dataset_v1 import (
     load_v1,
     retrieval_metrics,
     summarize,
+    summarize_cost,
+    _percentil,
 )
 from anchor_rag.ingestion.corpus_loader import ingest_corpus
 from anchor_rag.synthesis.llm import LLMProvider, LLMResponse
@@ -295,3 +297,66 @@ async def test_sintetizador_respeita_config_da_chamada():
     await synth.synthesize("q", chunks, [0.9] * 8, SynthesizerConfig(max_chunks=8, min_score_threshold=0.0))
 
     assert "[8]" in llm.prompts[-1]
+
+
+def test_percentil():
+    assert _percentil([1, 2, 3, 4, 5], 50) == 3
+    assert _percentil([10, 20], 50) == 15
+    assert _percentil([1, 2, 3, 4, 100], 95) == 80.8  # interpolado entre 4 e 100
+    assert _percentil([None, 7], 50) == 7
+    assert _percentil([], 50) is None
+
+
+@pytest.mark.asyncio
+async def test_custo_registra_latencia_e_tokens(store, arquivos):
+    pipeline = SimpleNamespace(embedder=Embedder(PERGUNTA_PARA_TRECHO), vector_store=store,
+                               synthesizer=RAGSynthesizer(EchoLLM(lambda s, u: "ok [1]")))
+    rs = await evaluate_v1(pipeline, load_v1(arquivos[1]), k=2, sintetizar=True)
+
+    for r in rs:
+        assert r.latencia_recuperacao_ms is not None and r.latencia_recuperacao_ms <= r.latencia_ms
+        assert r.latencia_llm_ms is not None
+        assert (r.tokens_entrada, r.tokens_saida) == (1, 1)  # o EchoLLM informa 1 e 1
+
+    custo = summarize_cost(rs)
+    assert custo["n"] == len(rs)
+    assert custo["tokens_entrada_max"] == 1
+    assert custo["tokens_entrada_media"] == 1.0 and custo["tokens_total"] == 2 * len(rs)
+    assert custo["latencia_ms_p50"] <= custo["latencia_ms_p95"]
+    assert "latencia_llm_ms_p50" in custo
+
+
+@pytest.mark.asyncio
+async def test_custo_so_recuperacao_nao_tem_tokens(store, arquivos):
+    pipeline = SimpleNamespace(embedder=Embedder(PERGUNTA_PARA_TRECHO), vector_store=store, synthesizer=None)
+    rs = await evaluate_v1(pipeline, load_v1(arquivos[1]), k=2, sintetizar=False)
+    custo = summarize_cost(rs)
+    assert "latencia_recuperacao_ms_p50" in custo
+    assert "latencia_llm_ms_p50" not in custo and "tokens_total" not in custo
+
+
+@pytest.mark.asyncio
+async def test_ollama_envia_num_ctx_quando_configurado(monkeypatch):
+    from anchor_rag.synthesis.llm import LLMConfig
+    from anchor_rag.synthesis.ollama_llm import OllamaLLMProvider
+
+    enviados = []
+
+    class Resp:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"message": {"content": "ok"}, "model": "m"}
+
+    async def post(url, json):
+        enviados.append(json["options"])
+        return Resp()
+
+    for n in (8192, None):
+        p = OllamaLLMProvider(LLMConfig(provider="ollama", model="m", num_ctx=n))
+        monkeypatch.setattr(p._client, "post", post)
+        await p.complete([{"role": "user", "content": "x"}])
+
+    assert enviados[0]["num_ctx"] == 8192
+    assert "num_ctx" not in enviados[1]  # sem configuração: padrão do servidor

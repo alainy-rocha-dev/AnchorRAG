@@ -16,6 +16,7 @@ class LLMConfig:
     temperature: float = 0.1
     max_tokens: int = 2048
     timeout: int = 30
+    num_ctx: Optional[int] = None
     api_key: Optional[str] = None
     base_url: Optional[str] = None
 
