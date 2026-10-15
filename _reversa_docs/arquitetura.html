@@ -800,7 +800,7 @@
         fullDesc: "Responsável pela montagem de prompts de ancoragem estrita e síntese via LLMs (OpenAI, Ollama, Anthropic). Implementa extração automática de citações em formato [N] e mecanismo pouca-alucinação com poucos-exemplos (few-shot defense).",
         classes: ["LLMProvider", "OpenAILLMProvider", "OllamaLLMProvider", "AnthropicLLMProvider", "RAGSynthesizer"],
         functions: ["build_system_prompt()", "build_user_prompt()", "synthesize()"],
-        metrics: { complexity: "18 (Alta)", coverage: "100%", latency: "1.2s", status: "🟢 Ativo" },
+        metrics: { complexity: "18 (Alta)", latency: "1.2s", status: "🟢 Ativo" },
         snippet: `class RAGSynthesizer:\n    def synthesize(self, query: str, chunks: List[Chunk]) -> QueryResult:\n        prompt = build_system_prompt(chunks)\n        response = self.llm.complete(prompt)\n        return extract_citations(response)`
       },
       {
@@ -817,7 +817,7 @@
         fullDesc: "Leitura e análise estruturada de documentos PDF com leitores PdfPlumber e PyPDF. Realiza sanitização de caracteres de controle, normalização NFKC e chunking por contagem exata de tokens via biblioteca tiktoken.",
         classes: ["PDFParser", "PdfPlumberParser", "PyPDFParser", "Chunker", "IngestionPipeline"],
         functions: ["parse_pdf()", "chunk_by_tokens()", "run_pipeline()"],
-        metrics: { complexity: "15 (Média-Alta)", coverage: "100%", latency: "0.35s", status: "🟢 Ativo" },
+        metrics: { complexity: "15 (Média-Alta)", latency: "0.35s", status: "🟢 Ativo" },
         snippet: `class Chunker:\n    def chunk_by_tokens(self, text: str, chunk_size=500, overlap=50) -> List[Chunk]:\n        tokens = tiktoken_encode(text)\n        return sliding_window(tokens, chunk_size, overlap)`
       },
       {
@@ -834,7 +834,7 @@
         fullDesc: "Camada de armazenamento e busca vetorial de alta velocidade utilizando a extensão C sqlite-vec. Cria a tabela virtual vec0, realiza indexação vetorial dense e executa similaridade cosseno acelerada via NumPy.",
         classes: ["VectorStore", "SQLiteVecStore"],
         functions: ["init_db()", "add_chunks()", "search()", "get_stats()"],
-        metrics: { complexity: "14 (Média)", coverage: "100%", latency: "12ms", status: "🟢 Ativo" },
+        metrics: { complexity: "14 (Média)", latency: "12ms", status: "🟢 Ativo" },
         snippet: `class SQLiteVecStore(VectorStore):\n    def search(self, query_vector: np.ndarray, top_k=5) -> List[QueryResult]:\n        return self.db.execute("SELECT * FROM vec0 WHERE vec MATCH ?", (query_vector,))`
       },
       {
@@ -851,7 +851,7 @@
         fullDesc: "Provedores de vetorização dense abstraídos por interface ABC. Suporta modelos remotos da OpenAI (text-embedding-3-small), locais via Ollama HTTP API e modelos HuggingFace via sentence-transformers com retry automático.",
         classes: ["EmbeddingProvider", "OpenAIEmbeddingProvider", "OllamaEmbeddingProvider", "HuggingFaceEmbeddingProvider"],
         functions: ["embed()", "embed_batch()", "create_embedding_provider()"],
-        metrics: { complexity: "12 (Média)", coverage: "100%", latency: "0.22s", status: "🟢 Ativo" },
+        metrics: { complexity: "12 (Média)", latency: "0.22s", status: "🟢 Ativo" },
         snippet: `def create_embedding_provider(config: AppConfig) -> EmbeddingProvider:\n    if config.provider == "openai": return OpenAIEmbeddingProvider()\n    return OllamaEmbeddingProvider()`
       },
       {
@@ -868,7 +868,7 @@
         fullDesc: "Ponto de entrada do usuário via linha de comando construído com Typer e Rich. Oferece os subcomandos 'ingest' (processamento de PDFs), 'query' (busca interativa RAG) e 'eval' (benchmark de Recall@k e MRR).",
         classes: ["TyperCLI"],
         functions: ["ingest_command()", "query_command()", "eval_command()"],
-        metrics: { complexity: "11 (Normal)", coverage: "100%", latency: "Fast", status: "🟢 Ativo" },
+        metrics: { complexity: "11 (Normal)", latency: "Fast", status: "🟢 Ativo" },
         snippet: `@app.command()\ndef query(question: str = typer.Argument(...), top_k: int = 5):\n    result = pipeline.query(question, top_k=top_k)\n    console.print_json(result.to_json())`
       },
       {
@@ -885,7 +885,7 @@
         fullDesc: "Classe central de orquestração (RAGPipeline) que conecta a cadeia completa: Ingestão PDF → Geração de Vetores Embeddings → Armazenamento no SQLite-vec → Busca de Contexto → Síntese no LLM.",
         classes: ["RAGPipeline"],
         functions: ["ingest()", "query()", "eval()"],
-        metrics: { complexity: "10 (Baixa)", coverage: "100%", latency: "< 1.8s Total", status: "🟢 Ativo" },
+        metrics: { complexity: "10 (Baixa)", latency: "< 1.8s Total", status: "🟢 Ativo" },
         snippet: `class RAGPipeline:\n    def query(self, question: str) -> QueryResult:\n        vec = self.embeddings.embed(question)\n        chunks = self.vector_store.search(vec)\n        return self.synthesizer.synthesize(question, chunks)`
       }
     ];

@@ -131,8 +131,7 @@
   </header>
 
   <div class="container">
-    <div class="concept-grid" id="conceptGrid">
-      <div class="concept-card">
+    <div class="concept-card">
         <h3>RAG (Retrieval-Augmented Generation)</h3>
         <p>Técnica que combina busca de dados relevantes em uma base vetorial (Retrieval) para subsidiar e ancorar a resposta de um modelo de linguagem (LLM Generation).</p>
       </div>
@@ -155,6 +154,22 @@
       <div class="concept-card">
         <h3>Recall@k e MRR</h3>
         <p>Métricas de avaliação de informação: Recall@k mede se o documento relevante estava nos top-k resultados; MRR mede a posição recíproca do primeiro resultado relevante.</p>
+      </div>
+      <div class="concept-card">
+        <h3>Busca Híbrida (BM25 + Vetorial)</h3>
+        <p>Combinação de busca Full-Text com BM25 e busca vetorial por similaridade de cosseno, fundida via Reciprocal Rank Fusion (RRF) para recuperar os resultados mais relevantes independentemente do tipo de consulta.</p>
+      </div>
+      <div class="concept-card">
+        <h3>Reranker (Cross-Encoder)</h3>
+        <p>Modelo cross-encoder (ex: HuggingFace BGE) que reordena os candidatos da busca híbrida por relevância contextual, avaliando pares query-chunk para melhorar a precisão dos top-k resultados.</p>
+      </div>
+      <div class="concept-card">
+        <h3>Corpus de Normas BCB/CMN</h3>
+        <p>Coleção de normas do Banco Central do Brasil (Resoluções CMN e BCB) usadas como fonte de dados ancoradas no sistema, com metadados estruturados (número, ano, ementa, artigos) para busca e recuperação.</p>
+      </div>
+      <div class="concept-card">
+        <h3>Juiz LLM (Feature 007)</h3>
+        <p>Avaliação agentica usando LLM para julgar fidelidade, exatidão e premissas das respostas RAG, com vereditos categóricos (fiel/incorreta, correta/parcial/incorreta) e métricas de qualidade por subtipo.</p>
       </div>
     </div>
   </div>

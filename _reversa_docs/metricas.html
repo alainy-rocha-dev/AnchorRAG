@@ -168,8 +168,8 @@
         <div class="label">Linhas de Código (LOC)</div>
       </div>
       <div class="metric-card">
-        <div class="value" style="color: var(--accent-green);">100%</div>
-        <div class="label">Tipagem Estrita (mypy)</div>
+        <div class="value" style="color: var(--accent-green);">7/7 módulos</div>
+        <div class="label">Módulos com tipagem mypy</div>
       </div>
       <div class="metric-card">
         <div class="value">46</div>
@@ -221,8 +221,30 @@
           <div style="font-size: 0.8rem; color: #8b949e;">Taxa de Alucinação (Grounded)</div>
         </div>
         <div style="background: #21262d; padding: 16px; border-radius: 6px;">
-          <div style="font-size: 1.5rem; font-weight: bold; color: var(--accent-green);">100%</div>
-          <div style="font-size: 0.8rem; color: #8b949e;">Cobertura de Citação [N]</div>
+          <div style="font-size: 1.5rem; font-weight: bold; color: var(--accent-green);">0.97</div>
+          <div style="font-size: 0.8rem; color: #8b949e;">Cobertura de Citação</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-section">
+      <h3>🔍 Arquitetura de Recuperação</h3>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; text-align: center;">
+        <div style="background: #21262d; padding: 16px; border-radius: 6px;">
+          <div style="font-size: 1.2rem; color: #bc8cff;">🔍</div>
+          <div style="font-size: 0.8rem; color: #8b949e;">Busca Híbrida (BM25 + Vetorial)</div>
+        </div>
+        <div style="background: #21262d; padding: 16px; border-radius: 6px;">
+          <div style="font-size: 1.2rem; color: #58a6ff;">🔗</div>
+          <div style="font-size: 0.8rem; color: #8b949e;">Reranker Cross-Encoder</div>
+        </div>
+        <div style="background: #21262d; padding: 16px; border-radius: 6px;">
+          <div style="font-size: 1.2rem; color: #3fb950;">📚</div>
+          <div style="font-size: 0.8rem; color: #8b949e;">Corpus BCB/CMN</div>
+        </div>
+        <div style="background: #21262d; padding: 16px; border-radius: 6px;">
+          <div style="font-size: 1.2rem; color: #bc8cff;">⚖️</div>
+          <div style="font-size: 0.8rem; color: #8b949e;">Juiz LLM (Feature 007)</div>
         </div>
       </div>
     </div>

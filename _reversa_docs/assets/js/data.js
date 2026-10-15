@@ -7,7 +7,6 @@ window.RV_DATA = {
   },
   metrics: {
     loc: 3200,
-    coverage: "100%",
     latencyP95: "< 1.8s",
     recallAtK: 0.94
   },
