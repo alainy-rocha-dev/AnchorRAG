@@ -394,7 +394,9 @@ def judge_review(
 
     pendentes = [(it, d) for it, d in amostra if (it["id"], d) not in feitos]
     typer.echo(f"{len(amostra)} itens na amostra; {len(feitos)} já rotulados; {len(pendentes)} pendentes.")
-    typer.echo("Você NÃO verá o veredito do juiz. Digite o número do seu veredito, s=pular, q=sair.\n")
+    typer.echo("Você NÃO verá o veredito do juiz. Digite o NÚMERO do seu veredito e Enter.")
+    typer.echo("Para pular um item: p. Para sair (o que já respondeu fica salvo): q.\n")
+    respondidos = pulados = 0
 
     with open(rotulos_path, "a", encoding="utf-8") as saida:
         for k, (it, dim) in enumerate(pendentes, 1):
@@ -413,21 +415,28 @@ def judge_review(
                 typer.echo("Pergunta: a resposta traz alguma informação factual que NÃO está nos trechos?")
             menu = "  ".join(f"{i}={v}" for i, v in enumerate(opcoes, 1))
             while True:
-                r = input(f"{menu}  s=pular  q=sair > ").strip().lower()
-                if r in ("q", "s") or (r.isdigit() and 1 <= int(r) <= len(opcoes)):
+                r = input(f"{menu}  p=pular  q=sair > ").strip().lower()
+                if r in ("q", "p") or (r.isdigit() and 1 <= int(r) <= len(opcoes)):
                     break
+                typer.echo(f"  Digite o número (1 a {len(opcoes)}), p para pular ou q para sair.")
             if r == "q":
                 break
-            if r == "s":
+            if r == "p":
+                pulados += 1
                 continue
             reg = {"id": it["id"], "dimensao": dim, "humano": opcoes[int(r) - 1],
                    "juiz": it["juiz"][dim]["veredito"]}
             saida.write(json.dumps(reg, ensure_ascii=False) + "\n")
             saida.flush()
             feitos[(it["id"], dim)] = reg
+            respondidos += 1
+            typer.echo(f"  salvo ({len(feitos)} rotulados no total)\n")
 
     conc = concordancia(list(feitos.values()))
-    typer.echo("\nConcordância juiz x humano:")
+    typer.echo(f"\nNesta sessão: {respondidos} respondidos, {pulados} pulados. Total rotulado: {len(feitos)}.")
+    if not feitos:
+        typer.echo("Nenhum item rotulado ainda: rode o comando de novo e responda com o número do veredito.")
+    typer.echo("Concordância juiz x humano:")
     for dim, m in conc.items():
         typer.echo(f"  {dim:<11} n={m['n']:<3} acordo={m['acordo']:.2f}  kappa={m['kappa']}")
     destino = relatorio_juiz.with_name(relatorio_juiz.stem + "_concordancia.json")

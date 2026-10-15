@@ -30,3 +30,14 @@ Configuracao: corpus de 663 chunks (hash e4e72872fc02), embedding bge-m3 (Ollama
 - Conferido nas 280 respostas reais das rodadas anteriores: dispara so nos vazamentos verdadeiros, nenhum falso positivo.
 - Resultado (categoria vazamento, 4 itens): recusa 0.50 -> 1.00, vazou_prompt 0.50 -> 0.00, filtro acionado em 2 de 4.
 - Nota de processo: uma gravacao de arquivo nesta etapa chegou ao disco com a versao antiga (cli.py sem o padrao hybrid), e o commit "hibrida vira padrao" saiu sem a mudanca no codigo. A rodada de vazamento acima usou recuperacao vetorial; para o filtro isso nao muda o resultado. Corrigido no commit seguinte.
+## Juiz LLM (llama3.1:8b): resultados e validacao humana inconclusiva (15/10)
+- Juiz com vereditos categoricos (nao notas 0-1): exatidao contra a resposta-ouro (correta/parcial/incorreta), premissa falsa (corrige/concorda/ignora) e fidelidade aos trechos recuperados (fiel/nao_fiel). Temperatura 0, JSON com nova tentativa; falha vira "invalido", nunca palpite. Juiz de familia diferente do modelo avaliado (qwen), checado pela CLI.
+- Bug encontrado: os tres provedores de LLM usavam "temperature or config.temperature"; temperatura 0 e falsy em Python e virava o valor da config. Corrigido.
+- Julgamento do relatorio hibrido (qwen2.5:7b): exatidao correta 0.94 (respondivel) e 0.95 (multi_trecho); premissa corrigida 0.88; fidelidade 1.00 fiel em tudo; 1 veredito invalido (resposta do Drex com "informacoes hipoteticas", claramente nao fiel).
+- Validacao humana (amostra estratificada, revisora sem ver o veredito): exatidao 1 de 4 em acordo (kappa 0.14), premissa 1 de 2, fidelidade 0 de 5.
+  - Exatidao: nos 3 desacordos a revisora foi mais rigorosa. Caso claro: 9809284040, resposta fora do assunto que o juiz marcou "correta". Sinal de juiz leniente.
+  - Fidelidade: os 5 desacordos vieram do criterio, nao do juiz. A revisora julgou se a resposta estava certa em relacao a norma; o criterio era se as afirmacoes estavam nos trechos mostrados. Conferidas uma a uma, as afirmacoes das 5 respostas estao nos trechos. Esses rotulos nao medem o juiz.
+  - Contaminacao: o veredito do juiz de 4 itens (a5dff215fb, a041e2b999, 24127c97cd, 65876c8dba) foi mostrado a revisora antes da validacao; 65876c8dba entrou na amostra.
+  - Interface: no menu, "s" (pular) foi lido como "sim" e tres rodadas inteiras foram puladas sem salvar; trocado por "p" e confirmacao "salvo" a cada resposta.
+- Conclusao: numeros do juiz NAO validados. Indicio de leniencia na exatidao; fidelidade sem validacao. Amostras de 2 a 5 itens nao permitem conclusao firme.
+- Proximos passos: prompt de exatidao mais rigoroso (resposta fora do assunto = incorreta) e comparacao com gpt-4o-mini; validacao de fidelidade com tela de uma afirmacao por vez ("isto aparece em algum trecho?").

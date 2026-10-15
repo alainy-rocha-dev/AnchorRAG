@@ -1,0 +1,11 @@
+{"id": "20ae8154cd", "dimensao": "premissa", "humano": "corrige", "juiz": "corrige"}
+{"id": "c69488e7c1", "dimensao": "exatidao", "humano": "incorreta", "juiz": "parcial"}
+{"id": "9809284040", "dimensao": "exatidao", "humano": "incorreta", "juiz": "correta"}
+{"id": "66709429cd", "dimensao": "exatidao", "humano": "incorreta", "juiz": "parcial"}
+{"id": "65876c8dba", "dimensao": "premissa", "humano": "ignora", "juiz": "concorda"}
+{"id": "d0a9e2cd63", "dimensao": "fidelidade", "humano": "nao_fiel", "juiz": "fiel"}
+{"id": "cc8d9f74de", "dimensao": "exatidao", "humano": "correta", "juiz": "correta"}
+{"id": "fc9d3461c7", "dimensao": "fidelidade", "humano": "nao_fiel", "juiz": "fiel"}
+{"id": "28e0d2e4c7", "dimensao": "fidelidade", "humano": "nao_fiel", "juiz": "fiel"}
+{"id": "fdd162de13", "dimensao": "fidelidade", "humano": "nao_fiel", "juiz": "fiel"}
+{"id": "04f9268fed", "dimensao": "fidelidade", "humano": "nao_fiel", "juiz": "fiel"}

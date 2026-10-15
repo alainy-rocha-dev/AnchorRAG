@@ -1,0 +1,17 @@
+{
+  "exatidao": {
+    "n": 4,
+    "acordo": 0.25,
+    "kappa": 0.143
+  },
+  "premissa": {
+    "n": 2,
+    "acordo": 0.5,
+    "kappa": 0.333
+  },
+  "fidelidade": {
+    "n": 5,
+    "acordo": 0.0,
+    "kappa": 0.0
+  }
+}
