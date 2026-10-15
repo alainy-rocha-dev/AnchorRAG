@@ -325,6 +325,9 @@ def judge_v1(
     permitir_mesma_familia: bool = typer.Option(False, "--permitir-mesma-familia",
                                                 help="Aceita juiz da mesma família do modelo avaliado"),
     limit: Optional[int] = typer.Option(None, "--limit", help="Julga só os N primeiros itens (teste rápido)"),
+    fidelidade: str = typer.Option("afirmacoes", "--fidelidade",
+                                   help="afirmacoes (julga cada afirmação da resposta) ou global (um veredito só)"),
+    num_ctx: int = typer.Option(8192, "--num-ctx", help="Ollama: janela de contexto do juiz (evita cortar os trechos)"),
     config: Optional[Path] = typer.Option(None, "--config", "-c"),
 ):
     """Julga as respostas de um relatório do eval-v1 com um LLM juiz (vereditos categóricos)."""
@@ -335,6 +338,9 @@ def judge_v1(
     from anchor_rag.evaluation.judge import formatar_resumo, julgar_relatorio, resumo_juiz
     from anchor_rag.synthesis import create_llm_provider
 
+    if fidelidade not in ("afirmacoes", "global"):
+        typer.echo(f"ERRO: --fidelidade deve ser afirmacoes ou global (recebido {fidelidade!r})", err=True)
+        raise typer.Exit(code=1)
     rel = json.loads(relatorio.read_text(encoding="utf-8"))
     if not rel.get("sintetizou"):
         typer.echo("ERRO: o relatório não tem respostas (foi gerado com --no-synthesis).", err=True)
@@ -353,6 +359,8 @@ def judge_v1(
     cfg.llm.model = judge_model
     cfg.llm.temperature = 0.0
     cfg.llm.timeout = max(cfg.llm.timeout, 180)
+    if judge_provider == "ollama":
+        cfg.llm.num_ctx = num_ctx
     ctx = _carregar_contexto_juiz(dataset, corpus)
 
     alvo = dict(rel)
@@ -360,23 +368,34 @@ def judge_v1(
         alvo["itens"] = rel["itens"][:limit]
 
     def progresso(n, total, item):
-        vs = ", ".join(f"{d}={v['veredito']}" for d, v in item.get("juiz", {}).items()) or "-"
+        partes = []
+        for d, v in item.get("juiz", {}).items():
+            extra = ""
+            if "afirmacoes" in v:
+                sem = sum(1 for a in v["afirmacoes"] if a["veredito"] == "nao_apoiada")
+                extra = f" ({len(v['afirmacoes'])} afirmações, {sem} sem apoio)"
+            partes.append(f"{d}={v['veredito']}{extra}")
+        vs = ", ".join(partes) or "-"
         typer.echo(f"  [{n}/{total}] {item['subtipo']:<14} {item['id']}  {vs}")
 
     async def run():
         llm = create_llm_provider(cfg.llm)
         try:
-            return await julgar_relatorio(llm, alvo, ctx, on_item=progresso)
+            return await julgar_relatorio(llm, alvo, ctx, on_item=progresso, fidelidade=fidelidade)
         finally:
             fechar = getattr(getattr(llm, "_client", None), "aclose", None)
             if fechar:
                 await fechar()
 
-    typer.echo(f"Juiz {judge_provider}:{judge_model} sobre {relatorio.name} ({len(alvo['itens'])} itens)")
+    typer.echo(f"Juiz {judge_provider}:{judge_model} sobre {relatorio.name} ({len(alvo['itens'])} itens, "
+               f"fidelidade {fidelidade})")
     itens = asyncio.run(run())
     resumo = resumo_juiz(itens)
     alvo["juiz"] = {
         "modelo": f"{judge_provider}:{judge_model}",
+        "fidelidade": fidelidade,
+        "num_ctx": cfg.llm.num_ctx,
+        "git_commit": _git_commit(),
         "data": datetime.now().isoformat(timespec="seconds"),
         "resumo": resumo,
     }
@@ -467,6 +486,138 @@ def judge_review(
     for dim, m in conc.items():
         typer.echo(f"  {dim:<11} n={m['n']:<3} acordo={m['acordo']:.2f}  kappa={m['kappa']}")
     destino = relatorio_juiz.with_name(relatorio_juiz.stem + "_concordancia.json")
+    destino.write_text(json.dumps(conc, ensure_ascii=False, indent=2), encoding="utf-8")
+    typer.echo(f"Rótulos: {rotulos_path}\nConcordância: {destino}")
+
+
+def _destacar(trecho: str, afirmacao: str) -> str:
+    """Realça no trecho as palavras que também aparecem na afirmação (números e radicais).
+
+    Só ajuda a localizar; quem decide se a afirmação está apoiada é a pessoa.
+    """
+    import re
+    import unicodedata
+
+    def norm(w):
+        w = unicodedata.normalize("NFKD", w.lower())
+        return "".join(c for c in w if not unicodedata.combining(c))
+
+    alvos = set()
+    for w in re.findall(r"\w+", afirmacao):
+        n = norm(w)
+        if any(c.isdigit() for c in n):
+            alvos.add(n)
+        elif len(n) >= 5:
+            alvos.add(n[:6])
+
+    def troca(m):
+        n = norm(m.group(0))
+        achou = n in alvos if any(c.isdigit() for c in n) else (len(n) >= 5 and n[:6] in alvos)
+        return typer.style(m.group(0), fg="yellow", bold=True) if achou else m.group(0)
+
+    return re.sub(r"\w+", troca, trecho)
+
+
+@app.command("judge-claims-review")
+def judge_claims_review(
+    relatorio_juiz: Path = typer.Argument(..., help="Relatório do judge-v1 com --fidelidade afirmacoes",
+                                          exists=True, readable=True),
+    corpus: Path = typer.Option(Path("corpus/chunks.jsonl"), "--corpus", exists=True, readable=True),
+    n: int = typer.Option(30, "--n", help="Afirmações na amostra"),
+    seed: int = typer.Option(7, "--seed"),
+    sem_destaque: bool = typer.Option(False, "--sem-destaque", help="Não realça palavras da afirmação nos trechos"),
+):
+    """Você julga afirmações, uma de cada vez: ela está nos trechos? No fim, concordância com o juiz."""
+    import json
+    import sys
+    from anchor_rag.evaluation.judge import amostra_afirmacoes, concordancia
+
+    if not sys.stdin.isatty():
+        typer.echo("ERRO: a revisão exige uma pessoa no terminal.", err=True)
+        raise typer.Exit(code=1)
+
+    rel = json.loads(relatorio_juiz.read_text(encoding="utf-8"))
+    if (rel.get("juiz") or {}).get("fidelidade") != "afirmacoes":
+        typer.echo("ERRO: o relatório não foi julgado por afirmação (rode judge-v1 com --fidelidade afirmacoes).",
+                   err=True)
+        raise typer.Exit(code=1)
+    texto_por_chunk = {}
+    with open(corpus, encoding="utf-8") as f:
+        for linha in f:
+            if linha.strip():
+                x = json.loads(linha)
+                texto_por_chunk[x["chunk_id"]] = x["texto"]
+
+    amostra = amostra_afirmacoes(rel["itens"], n, seed=seed)
+    rotulos_path = relatorio_juiz.with_name(relatorio_juiz.stem + "_afirmacoes_humano.jsonl")
+    feitos = {}
+    if rotulos_path.exists():
+        for linha in rotulos_path.read_text(encoding="utf-8").splitlines():
+            if linha.strip():
+                r = json.loads(linha)
+                feitos[(r["id"], r["idx"])] = r
+    pendentes = [(it, k) for it, k in amostra if (it["id"], k) not in feitos]
+
+    typer.echo(f"{len(amostra)} afirmações na amostra; {len(feitos)} já rotuladas; {len(pendentes)} pendentes.\n")
+    typer.echo("Para cada AFIRMAÇÃO, responda só uma coisa:")
+    typer.echo("  ela está escrita nos TRECHOS mostrados, com estas ou outras palavras?")
+    typer.echo("Não importa se está certa segundo a norma, nem se responde bem à pergunta.")
+    typer.echo("Você NÃO verá o veredito do juiz. As palavras em destaque só ajudam a procurar.\n")
+    menu = "1=está nos trechos  2=não está  t=ver trechos de novo  p=pular  q=sair > "
+    respondidos = pulados = 0
+    item_atual = None
+
+    def mostrar_trechos(it, afirmacao):
+        for i, cid in enumerate(it.get("recuperados") or [], 1):
+            texto = texto_por_chunk.get(cid, "")
+            if not sem_destaque:
+                texto = _destacar(texto, afirmacao)
+            typer.echo(f"--- trecho [{i}] {cid} ---\n{texto}\n")
+
+    with open(rotulos_path, "a", encoding="utf-8") as saida:
+        for k, (it, idx) in enumerate(pendentes, 1):
+            af = it["juiz"]["fidelidade"]["afirmacoes"][idx]
+            if it["id"] != item_atual:
+                item_atual = it["id"]
+                typer.echo("=" * 78)
+                typer.echo(f"RESPOSTA {it['id']} ({it['subtipo']}): trechos que o modelo recebeu\n")
+                mostrar_trechos(it, af["afirmacao"])
+            typer.echo("-" * 78)
+            typer.echo(f"[{k}/{len(pendentes)}] AFIRMAÇÃO: {typer.style(af['afirmacao'], bold=True)}")
+            while True:
+                r = input(menu).strip().lower()
+                if r == "t":
+                    mostrar_trechos(it, af["afirmacao"])
+                    typer.echo(f"AFIRMAÇÃO: {typer.style(af['afirmacao'], bold=True)}")
+                    continue
+                if r in ("1", "2", "p", "q"):
+                    break
+                typer.echo("  Digite 1, 2, t, p ou q.")
+            if r == "q":
+                break
+            if r == "p":
+                pulados += 1
+                continue
+            reg = {"id": it["id"], "idx": idx, "afirmacao": af["afirmacao"], "dimensao": "afirmacao",
+                   "humano": "apoiada" if r == "1" else "nao_apoiada", "juiz": af["veredito"]}
+            saida.write(json.dumps(reg, ensure_ascii=False) + "\n")
+            saida.flush()
+            feitos[(it["id"], idx)] = reg
+            respondidos += 1
+            typer.echo(f"  salvo ({len(feitos)} rotuladas no total)\n")
+
+    pares = list(feitos.values())
+    conc = concordancia(pares)
+    typer.echo(f"\nNesta sessão: {respondidos} respondidas, {pulados} puladas. Total rotulado: {len(feitos)}.")
+    if pares:
+        m = conc.get("afirmacao", {})
+        typer.echo(f"Concordância juiz x humano: n={m.get('n')}  acordo={m.get('acordo')}  kappa={m.get('kappa')}")
+        typer.echo("               humano: apoiada  nao_apoiada")
+        for j in ("apoiada", "nao_apoiada"):
+            a = sum(1 for p in pares if p["juiz"] == j and p["humano"] == "apoiada")
+            b = sum(1 for p in pares if p["juiz"] == j and p["humano"] == "nao_apoiada")
+            typer.echo(f"  juiz {j:<12}    {a:>5}  {b:>11}")
+    destino = relatorio_juiz.with_name(relatorio_juiz.stem + "_afirmacoes_concordancia.json")
     destino.write_text(json.dumps(conc, ensure_ascii=False, indent=2), encoding="utf-8")
     typer.echo(f"Rótulos: {rotulos_path}\nConcordância: {destino}")
 
