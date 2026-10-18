@@ -195,6 +195,8 @@ def eval_v1(
         store = SQLiteVecStore(str(db), embedding_dimensions=embedder.dimensions)
         fts = FTS5Store(str(db))
         try:
+            if not await embedder.health_check():
+                raise RuntimeError(_SERVIDOR_FORA(cfg.embedding.provider))
             aviso = await check_corpus(store, corpus)
             if aviso:
                 raise RuntimeError(f"base inconsistente: {aviso}")
@@ -271,6 +273,13 @@ def eval_v1(
     typer.echo("")
     typer.echo(format_cost(custo))
     typer.echo(f"\nRelatório: {destino}")
+
+
+def _SERVIDOR_FORA(provedor: str) -> str:
+    if provedor == "ollama":
+        return ("o Ollama não está respondendo em 127.0.0.1:11434. Abra o aplicativo do Ollama "
+                "ou rode 'ollama serve' em outra janela e deixe-a aberta.")
+    return f"o provedor {provedor} não respondeu (confira a chave de API e a conexão)."
 
 
 def _git_commit() -> Optional[str]:
@@ -381,6 +390,8 @@ def judge_v1(
     async def run():
         llm = create_llm_provider(cfg.llm)
         try:
+            if not await llm.health_check():
+                raise RuntimeError(_SERVIDOR_FORA(judge_provider))
             return await julgar_relatorio(llm, alvo, ctx, on_item=progresso, fidelidade=fidelidade)
         finally:
             fechar = getattr(getattr(llm, "_client", None), "aclose", None)
@@ -389,7 +400,11 @@ def judge_v1(
 
     typer.echo(f"Juiz {judge_provider}:{judge_model} sobre {relatorio.name} ({len(alvo['itens'])} itens, "
                f"fidelidade {fidelidade})")
-    itens = asyncio.run(run())
+    try:
+        itens = asyncio.run(run())
+    except RuntimeError as e:
+        typer.echo(f"ERRO: {e}", err=True)
+        raise typer.Exit(code=1)
     resumo = resumo_juiz(itens)
     alvo["juiz"] = {
         "modelo": f"{judge_provider}:{judge_model}",
