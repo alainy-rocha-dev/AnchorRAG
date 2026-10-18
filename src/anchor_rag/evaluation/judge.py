@@ -99,8 +99,9 @@ Regras:
 - Liste SOMENTE o que a resposta afirma. Não acrescente nada que ela não diga, nem conclusões suas.
 - Uma afirmação por item, curta e autossuficiente: troque pronomes ("ela", "esse prazo") pelo que eles indicam.
 - Mantenha números, prazos, percentuais, nomes de normas e de órgãos exatamente como aparecem.
+- Mantenha as condições e exceções junto da regra ("desde que", "exclusivamente", "no caso de", "exceto"): não generalize.
 - Se a resposta diz "sim" ou "não" a uma pergunta, transforme em afirmação completa (ex.: "A auditoria interna pode avaliar as próprias atividades.").
-- NÃO liste: marcas de citação como [1], menções a fontes ("segundo o art. 4º", "conforme os trechos"), frases de recusa ("não encontrei essa informação") e ressalvas genéricas.
+- NÃO liste: marcas de citação como [1]; menções a fontes ("segundo o art. 4º", "os artigos 7º e 8º tratam disso"); frases sobre os próprios trechos ou documentos ("não há informação nos trechos", "os trechos não detalham"); recusas; recomendações de consultar outra fonte; ressalvas genéricas.
 - No máximo {maximo} afirmações. Se não houver nenhuma afirmação factual, devolva a lista vazia.
 JSON: {{"afirmacoes": ["...", "..."]}}"""
 
@@ -210,22 +211,34 @@ def _norm(s: str) -> str:
     return " ".join(re.findall(r"\w+", s))
 
 
-def citacao_confere(citacao: str, texto: str, minimo: float = 0.8) -> bool:
+def _bigramas(palavras: List[str]) -> set:
+    return {" ".join(palavras[i:i + 2]) for i in range(len(palavras) - 1)}
+
+
+def _numeros(s: str) -> set:
+    return set(re.findall(r"\d+", s))
+
+
+def citacao_confere(citacao: str, texto: str, minimo: float = 0.75) -> bool:
     """A citação copiada pelo juiz está no trecho? (tolera pequenas diferenças de cópia)
 
-    Literal após normalizar (caixa, acento, pontuação); senão, ao menos `minimo` dos
-    trigramas de palavras da citação aparecem no trecho. Citação com menos de 4 palavras
-    não prova nada e não confere.
+    Aceita se, após normalizar (caixa, acento, pontuação), a citação aparece literalmente
+    no trecho (mínimo de 2 palavras) ou se ao menos `minimo` dos pares de palavras dela
+    aparecem no trecho. Em qualquer caso, todo número da citação precisa estar no trecho:
+    trocar "60 meses" por "90 meses" não passa.
     """
     c, t = _norm(citacao), _norm(texto)
     palavras = c.split()
-    if len(palavras) < 4 or not t:
+    if len(palavras) < 2 or not t:
         return False
-    if c in t:
+    if not _numeros(c) <= _numeros(t):
+        return False
+    if f" {c} " in f" {t} ":
         return True
-    tri = {" ".join(palavras[i:i + 3]) for i in range(len(palavras) - 2)}
-    achados = sum(1 for g in tri if g in t)
-    return achados / len(tri) >= minimo
+    if len(palavras) < 4:
+        return False
+    bi = _bigramas(palavras)
+    return sum(1 for g in bi if f" {g} " in f" {t} ") / len(bi) >= minimo
 
 
 def _conferir_apoio(v: dict, textos: List[str]) -> dict:
@@ -251,6 +264,22 @@ def _conferir_apoio(v: dict, textos: List[str]) -> dict:
     return {**v, "veredito": "nao_apoiada", "rebaixada": "citação não encontrada nos trechos"}
 
 
+async def verificar_afirmacao(llm, afirmacao: str, textos: List[str]) -> dict:
+    """Julga UMA afirmação contra os trechos (veredito do modelo + citação conferida)."""
+    v, bruto = await _pedir_json(
+        llm, P_AFIRMACAO.format(trechos=_trechos(textos), afirmacao=afirmacao, n_trechos=len(textos)),
+        lambda t: parse_veredito(t, "afirmacao"))
+    if v is None:
+        return {"afirmacao": afirmacao, "veredito": "invalido", "bruto": bruto[:300]}
+    v = _conferir_apoio(v, textos)
+    j = {"afirmacao": afirmacao, "veredito": v["veredito"], "trecho": v.get("trecho"),
+         "citacao": v.get("citacao", ""), "justificativa": v.get("justificativa", "")}
+    for extra in ("rebaixada", "trecho_informado"):
+        if extra in v:
+            j[extra] = v[extra]
+    return j
+
+
 async def julgar_fidelidade_por_afirmacao(llm, resposta: str, textos: List[str]) -> dict:
     """Extrai as afirmações e julga cada uma contra os trechos.
 
@@ -262,22 +291,7 @@ async def julgar_fidelidade_por_afirmacao(llm, resposta: str, textos: List[str])
     if afirmacoes is None:
         return {"veredito": "invalido", "etapa": "extracao", "bruto": bruto[:300], "afirmacoes": []}
 
-    julgadas = []
-    trechos = _trechos(textos)
-    for a in afirmacoes:
-        v, bruto = await _pedir_json(
-            llm, P_AFIRMACAO.format(trechos=trechos, afirmacao=a, n_trechos=len(textos)),
-            lambda t: parse_veredito(t, "afirmacao"))
-        if v is None:
-            julgadas.append({"afirmacao": a, "veredito": "invalido", "bruto": bruto[:300]})
-            continue
-        v = _conferir_apoio(v, textos)
-        j = {"afirmacao": a, "veredito": v["veredito"], "trecho": v.get("trecho"),
-             "citacao": v.get("citacao", ""), "justificativa": v.get("justificativa", "")}
-        for extra in ("rebaixada", "trecho_informado"):
-            if extra in v:
-                j[extra] = v[extra]
-        julgadas.append(j)
+    julgadas = [await verificar_afirmacao(llm, a, textos) for a in afirmacoes]
 
     sem_apoio = [j for j in julgadas if j["veredito"] == "nao_apoiada"]
     if sem_apoio:

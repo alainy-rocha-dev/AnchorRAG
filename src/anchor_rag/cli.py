@@ -637,6 +637,101 @@ def judge_claims_review(
     typer.echo(f"Rótulos: {rotulos_path}\nConcordância: {destino}")
 
 
+@app.command("judge-claims-compare")
+def judge_claims_compare(
+    relatorio_juiz: Path = typer.Argument(..., help="Relatório do judge-v1 já rotulado com judge-claims-review",
+                                          exists=True, readable=True),
+    corpus: Path = typer.Option(Path("corpus/chunks.jsonl"), "--corpus", exists=True, readable=True),
+    judge_provider: str = typer.Option("ollama", "--judge-provider"),
+    judge_model: str = typer.Option(..., "--judge-model", help="Ex.: gemma2:9b ou gpt-4o-mini"),
+    num_ctx: int = typer.Option(8192, "--num-ctx", help="Ollama: janela de contexto"),
+    config: Optional[Path] = typer.Option(None, "--config", "-c"),
+):
+    """Julga de novo, com outro modelo, as MESMAS afirmações que você rotulou e compara com seus rótulos.
+
+    Só a etapa de verificação: as afirmações são as já extraídas, para comparar juízes nos
+    mesmos itens, sem misturar a qualidade do extrator.
+    """
+    import asyncio
+    import json
+    from datetime import datetime
+    from anchor_rag.evaluation.judge import concordancia, verificar_afirmacao
+    from anchor_rag.synthesis import create_llm_provider
+
+    rotulos_path = relatorio_juiz.with_name(relatorio_juiz.stem + "_afirmacoes_humano.jsonl")
+    if not rotulos_path.exists():
+        typer.echo(f"ERRO: não achei os rótulos em {rotulos_path} (rode judge-claims-review antes).", err=True)
+        raise typer.Exit(code=1)
+    rotulos = [json.loads(l) for l in rotulos_path.read_text(encoding="utf-8").splitlines() if l.strip()]
+    rel = json.loads(relatorio_juiz.read_text(encoding="utf-8"))
+    if _familia(rel.get("llm") or "") == _familia(judge_model):
+        typer.echo(f"ERRO: {judge_model} é da mesma família do modelo avaliado ({rel.get('llm')}).", err=True)
+        raise typer.Exit(code=1)
+    item_por_id = {i["id"]: i for i in rel["itens"]}
+    texto_por_chunk = {}
+    with open(corpus, encoding="utf-8") as f:
+        for linha in f:
+            if linha.strip():
+                x = json.loads(linha)
+                texto_por_chunk[x["chunk_id"]] = x["texto"]
+
+    cfg = AppConfig.from_yaml(config).resolve_api_keys() if config else AppConfig()
+    cfg.llm.provider = judge_provider
+    cfg.llm.model = judge_model
+    cfg.llm.temperature = 0.0
+    cfg.llm.timeout = max(cfg.llm.timeout, 180)
+    if judge_provider == "ollama":
+        cfg.llm.num_ctx = num_ctx
+
+    async def run():
+        llm = create_llm_provider(cfg.llm)
+        try:
+            if not await llm.health_check():
+                raise RuntimeError(_SERVIDOR_FORA(judge_provider))
+            saida = []
+            for k, r in enumerate(rotulos, 1):
+                item = item_por_id[r["id"]]
+                textos = [texto_por_chunk.get(c, "") for c in item.get("recuperados") or [] if c]
+                v = await verificar_afirmacao(llm, r["afirmacao"], textos)
+                saida.append({**r, "juiz_novo": v["veredito"], "detalhe": v})
+                typer.echo(f"  [{k}/{len(rotulos)}] {r['id']}  {v['veredito']}")
+            return saida
+        finally:
+            fechar = getattr(getattr(llm, "_client", None), "aclose", None)
+            if fechar:
+                await fechar()
+
+    modelo = f"{judge_provider}:{judge_model}"
+    typer.echo(f"Juiz {modelo} sobre {len(rotulos)} afirmações rotuladas")
+    try:
+        saida = asyncio.run(run())
+    except RuntimeError as e:
+        typer.echo(f"ERRO: {e}", err=True)
+        raise typer.Exit(code=1)
+
+    antigo = concordancia([{"dimensao": "afirmacao", "juiz": s["juiz"], "humano": s["humano"]} for s in saida])
+    novo = concordancia([{"dimensao": "afirmacao", "juiz": s["juiz_novo"], "humano": s["humano"]} for s in saida])
+    typer.echo("")
+    for nome, c, campo in ((rel["juiz"]["modelo"], antigo, "juiz"), (modelo, novo, "juiz_novo")):
+        m = c.get("afirmacao", {})
+        typer.echo(f"{nome:<28} n={m.get('n')}  acordo={m.get('acordo')}  kappa={m.get('kappa')}")
+        for j in ("apoiada", "nao_apoiada"):
+            a = sum(1 for s in saida if s[campo] == j and s["humano"] == "apoiada")
+            b = sum(1 for s in saida if s[campo] == j and s["humano"] == "nao_apoiada")
+            typer.echo(f"    juiz {j:<12} humano apoiada={a:<3} humano nao_apoiada={b}")
+    invalidos = sum(1 for s in saida if s["juiz_novo"] == "invalido")
+    if invalidos:
+        typer.echo(f"  ({invalidos} vereditos inválidos do juiz novo ficaram fora da concordância)")
+    nome_arq = judge_model.replace(":", "-").replace("/", "-")
+    destino = relatorio_juiz.with_name(relatorio_juiz.stem + f"_afirmacoes_{nome_arq}.json")
+    destino.write_text(json.dumps({
+        "modelo": modelo, "num_ctx": cfg.llm.num_ctx, "git_commit": _git_commit(),
+        "data": datetime.now().isoformat(timespec="seconds"),
+        "concordancia": {"anterior": antigo, "novo": novo}, "afirmacoes": saida,
+    }, ensure_ascii=False, indent=2), encoding="utf-8")
+    typer.echo(f"\nRelatório: {destino}")
+
+
 @app.command()
 def query(
     question: str = typer.Argument(..., help="Pergunta para o sistema RAG"),
