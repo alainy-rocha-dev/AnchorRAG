@@ -1,0 +1,497 @@
+{
+  "modelo": "ollama:gemma2:9b",
+  "num_ctx": 8192,
+  "git_commit": "55a1c16+sujo",
+  "data": "2026-10-18T21:03:57",
+  "concordancia": {
+    "anterior": {
+      "afirmacao": {
+        "n": 29,
+        "acordo": 0.59,
+        "kappa": 0.163
+      }
+    },
+    "novo": {
+      "afirmacao": {
+        "n": 29,
+        "acordo": 0.72,
+        "kappa": 0.288
+      }
+    }
+  },
+  "afirmacoes": [
+    {
+      "id": "d1924800d4",
+      "idx": 2,
+      "afirmacao": "Um arranjo de pagamento de propósito limitado presta serviços de pagamento relacionados com auxílio-alimentação de que trata o § 2º do art. 457 da Consolidação das Leis do Trabalho, aprovada pelo Decreto-Lei nº 5.452, de 1º de maio de 1943.",
+      "dimensao": "afirmacao",
+      "humano": "apoiada",
+      "juiz": "nao_apoiada",
+      "juiz_novo": "apoiada",
+      "detalhe": {
+        "afirmacao": "Um arranjo de pagamento de propósito limitado presta serviços de pagamento relacionados com auxílio-alimentação de que trata o § 2º do art. 457 da Consolidação das Leis do Trabalho, aprovada pelo Decreto-Lei nº 5.452, de 1º de maio de 1943.",
+        "veredito": "apoiada",
+        "trecho": 1,
+        "citacao": "II - prestem serviços de pagamento exclusivamente relacionados com: a) programa destinado a conceder benefícios a pessoas naturais em função de relações de trabalho, de prestação de serviços ou similares, instituído por lei ou por ato do Poder Executivo federal, estadual ou municipal; ou",
+        "justificativa": "A afirmação diz que um arranjo de pagamento de propósito limitado presta serviços relacionados com auxílio-alimentação. O trecho 1 diz que esse tipo de arranjo pode prestar serviços relacionados a programas que concedem benefícios, incluindo aqueles relacionados a trabalho e prestação de serviços, instituídos por lei ou ato do poder público."
+      }
+    },
+    {
+      "id": "f66ab438fa",
+      "idx": 3,
+      "afirmacao": "A dispensa é também para os bancos de bolsas de mercadorias e futuros.",
+      "dimensao": "afirmacao",
+      "humano": "nao_apoiada",
+      "juiz": "nao_apoiada",
+      "juiz_novo": "nao_apoiada",
+      "detalhe": {
+        "afirmacao": "A dispensa é também para os bancos de bolsas de mercadorias e futuros.",
+        "veredito": "nao_apoiada",
+        "trecho": null,
+        "citacao": null,
+        "justificativa": "A afirmação não está presente nos trechos fornecidos."
+      }
+    },
+    {
+      "id": "35693b0075",
+      "idx": 1,
+      "afirmacao": "Nas hipóteses previstas no art. 5º, inciso II, as instituições referidas no art. 2º devem informar o nome do ouvidor.",
+      "dimensao": "afirmacao",
+      "humano": "nao_apoiada",
+      "juiz": "apoiada",
+      "juiz_novo": "apoiada",
+      "detalhe": {
+        "afirmacao": "Nas hipóteses previstas no art. 5º, inciso II, as instituições referidas no art. 2º devem informar o nome do ouvidor.",
+        "veredito": "apoiada",
+        "trecho": 2,
+        "citacao": "II - informar o nome do ouvidor, que deverá ser o do ouvidor da associação de classe, da bolsa de valores, da bolsa de mercadorias e futuros ou da bolsa de valores e de mercadorias e futuros, ou da entidade ou empresa que constituir a ouvidoria.",
+        "justificativa": "O trecho afirma que as instituições devem informar o nome do ouvidor.",
+        "trecho_informado": 11
+      }
+    },
+    {
+      "id": "f3938148d0",
+      "idx": 6,
+      "afirmacao": "A funcionalidade de recuperação de valores não era obrigatória antes de 2 de fevereiro de 2026.",
+      "dimensao": "afirmacao",
+      "humano": "nao_apoiada",
+      "juiz": "apoiada",
+      "juiz_novo": "apoiada",
+      "detalhe": {
+        "afirmacao": "A funcionalidade de recuperação de valores não era obrigatória antes de 2 de fevereiro de 2026.",
+        "veredito": "apoiada",
+        "trecho": 1,
+        "citacao": "I - poderá ser implementada facultativamente pelos participantes do Pix a partir de 23 de novembro de 2025; e",
+        "justificativa": "O trecho afirma que a funcionalidade pode ser implementada facultativamente antes de 2 de fevereiro de 2026."
+      }
+    },
+    {
+      "id": "f3938148d0",
+      "idx": 7,
+      "afirmacao": "Ela é obrigatória para os participantes do Pix nas modalidades mencionadas a partir de 2 de fevereiro de 2026.",
+      "dimensao": "afirmacao",
+      "humano": "apoiada",
+      "juiz": "nao_apoiada",
+      "juiz_novo": "apoiada",
+      "detalhe": {
+        "afirmacao": "Ela é obrigatória para os participantes do Pix nas modalidades mencionadas a partir de 2 de fevereiro de 2026.",
+        "veredito": "apoiada",
+        "trecho": 1,
+        "citacao": "II - deverá ser implementada obrigatoriamente pelos participantes do Pix nas modalidades provedor de conta transacional e liquidante especial a partir de 2 de fevereiro de 2026.",
+        "justificativa": "O trecho afirma que a funcionalidade será obrigatória para as modalidades mencionadas a partir da data especificada."
+      }
+    },
+    {
+      "id": "a041e2b999",
+      "idx": 7,
+      "afirmacao": "O § 1º menciona que as instituições de pagamento estão incluídas nas regras do CMN.",
+      "dimensao": "afirmacao",
+      "humano": "nao_apoiada",
+      "juiz": "nao_apoiada",
+      "juiz_novo": "nao_apoiada",
+      "detalhe": {
+        "afirmacao": "O § 1º menciona que as instituições de pagamento estão incluídas nas regras do CMN.",
+        "veredito": "nao_apoiada",
+        "trecho": null,
+        "citacao": null,
+        "justificativa": "O § 1º menciona que as instituições de pagamento devem observar a regulamentação emanada do Banco Central do Brasil no exercício de suas atribuições legais, mas não afirma que estão incluídas nas regras do CMN."
+      }
+    },
+    {
+      "id": "afde840044",
+      "idx": 1,
+      "afirmacao": "Essa classificação deve ser irrevogável.",
+      "dimensao": "afirmacao",
+      "humano": "nao_apoiada",
+      "juiz": "nao_apoiada",
+      "juiz_novo": "nao_apoiada",
+      "detalhe": {
+        "afirmacao": "Essa classificação deve ser irrevogável.",
+        "veredito": "nao_apoiada",
+        "trecho": null,
+        "citacao": null,
+        "justificativa": "A afirmação diz que a classificação deve ser irrevogável, mas nenhum trecho menciona isso."
+      }
+    },
+    {
+      "id": "afde840044",
+      "idx": 7,
+      "afirmacao": "A estratégia já existente no reconhecimento inicial pode envolver a avaliação conjunta de ativos e passivos.",
+      "dimensao": "afirmacao",
+      "humano": "apoiada",
+      "juiz": "apoiada",
+      "juiz_novo": "apoiada",
+      "detalhe": {
+        "afirmacao": "A estratégia já existente no reconhecimento inicial pode envolver a avaliação conjunta de ativos e passivos.",
+        "veredito": "apoiada",
+        "trecho": 2,
+        "citacao": "desde que essa classificação tenha a finalidade de eliminar ou reduzir significativamente inconsistência de mensuração ou de reconhecimento contábil que possa ocorrer em virtude da mensuração em bases diferentes de ativos ou passivos cuja avaliação conjunta faça parte de estratégia já existente no reconhecimento inicial",
+        "justificativa": "A afirmação diz que a estratégia pode envolver a avaliação conjunta de ativos e passivos. O trecho diz que essa classificação pode ser usada para eliminar inconsistências de mensuração entre ativos e passivos cuja avaliação conjunta faça parte de uma estratégia já existente no reconhecimento inicial."
+      }
+    },
+    {
+      "id": "dc0b34e0ba",
+      "idx": 1,
+      "afirmacao": "As instituições autorizadas a funcionar pelo Banco Central do Brasil que tenham clientes classificados como microempresas devem ter uma ouvidoria.",
+      "dimensao": "afirmacao",
+      "humano": "apoiada",
+      "juiz": "apoiada",
+      "juiz_novo": "apoiada",
+      "detalhe": {
+        "afirmacao": "As instituições autorizadas a funcionar pelo Banco Central do Brasil que tenham clientes classificados como microempresas devem ter uma ouvidoria.",
+        "veredito": "apoiada",
+        "trecho": 1,
+        "citacao": "Art. 2º  O componente organizacional de ouvidoria deve ser constituído pelas instituições financeiras e demais instituições autorizadas a funcionar pelo Banco Central do Brasil que tenham clientes pessoas naturais, inclusive empresários individuais, ou pessoas jurídicas classificadas como microempresas e empresas de pequeno porte, nos termos da Lei Complementar nº 123, de 14 de dezembro de 2006.",
+        "justificativa": "O trecho define quem deve constituir uma ouvidoria, incluindo instituições que tenham clientes classificados como microempresas."
+      }
+    },
+    {
+      "id": "af082757bc",
+      "idx": 2,
+      "afirmacao": "Ela deve identificar e acompanhar os riscos associados às demais entidades controladas por seus integrantes.",
+      "dimensao": "afirmacao",
+      "humano": "nao_apoiada",
+      "juiz": "apoiada",
+      "juiz_novo": "apoiada",
+      "detalhe": {
+        "afirmacao": "Ela deve identificar e acompanhar os riscos associados às demais entidades controladas por seus integrantes.",
+        "veredito": "apoiada",
+        "trecho": 1,
+        "citacao": "identificar e acompanhar os riscos associados às demais entidades controladas por seus integrantes ou das quais estes participem.",
+        "justificativa": "O trecho 1 diz exatamente o que a afirmação diz, mesmo com outras palavras.",
+        "trecho_informado": [
+          1
+        ]
+      }
+    },
+    {
+      "id": "a10e21fe8d",
+      "idx": 2,
+      "afirmacao": "A instituição de pagamento está no contexto do Open Finance.",
+      "dimensao": "afirmacao",
+      "humano": "apoiada",
+      "juiz": "apoiada",
+      "juiz_novo": "apoiada",
+      "detalhe": {
+        "afirmacao": "A instituição de pagamento está no contexto do Open Finance.",
+        "veredito": "apoiada",
+        "trecho": 1,
+        "citacao": "A instituição de pagamento que presta serviço de iniciação de transação de pagamento poderá executar, como atividade especial, no âmbito do Open Finance, serviço de iniciação de transação de pagamento sem o redirecionamento para outros ambientes ou sistemas eletrônicos, inclusive de outras instituições, observado o disposto em regulamentação específica.",
+        "justificativa": "O trecho menciona que a instituição de pagamento pode executar o serviço de iniciação de transação de pagamento no âmbito do Open Finance."
+      }
+    },
+    {
+      "id": "d3bff02bf9",
+      "idx": 1,
+      "afirmacao": "As instituições devem promover o equilíbrio das metas de resultados e de incentivos associados ao desempenho de correspondentes no País.",
+      "dimensao": "afirmacao",
+      "humano": "apoiada",
+      "juiz": "apoiada",
+      "juiz_novo": "apoiada",
+      "detalhe": {
+        "afirmacao": "As instituições devem promover o equilíbrio das metas de resultados e de incentivos associados ao desempenho de correspondentes no País.",
+        "veredito": "apoiada",
+        "trecho": 2,
+        "citacao": "promover o equilíbrio das metas de resultados e de incentivos associados ao desempenho de funcionários e de correspondentes no País com as diretrizes e os valores organizacionais previstos na política institucional de que trata o art. 6º;",
+        "justificativa": ""
+      }
+    },
+    {
+      "id": "e13af871b1",
+      "idx": 1,
+      "afirmacao": "Quando um contrato de correspondente inclui atividades relativas a operações de crédito e arrendamento mercantil, a instituição contratante deve implementar uma sistemática de monitoramento e controle da viabilidade econômica da operação.",
+      "dimensao": "afirmacao",
+      "humano": "apoiada",
+      "juiz": "apoiada",
+      "juiz_novo": "apoiada",
+      "detalhe": {
+        "afirmacao": "Quando um contrato de correspondente inclui atividades relativas a operações de crédito e arrendamento mercantil, a instituição contratante deve implementar uma sistemática de monitoramento e controle da viabilidade econômica da operação.",
+        "veredito": "apoiada",
+        "trecho": 1,
+        "citacao": "Na hipótese de o contrato de correspondente incluir as atividades relativas a operações de crédito e de arrendamento mercantil, referidas no art. 12, inciso V, a instituição contratante deve implementar sistemática de monitoramento e controle da viabilidade econômica da operação, cuja proposta seja encaminhada por correspondente, com a produção de relatórios gerenciais contemplando todas as receitas e despesas envolvidas",
+        "justificativa": "O trecho afirma que a instituição contratante deve implementar um sistema de monitoramento e controle da viabilidade econômica da operação quando o contrato incluir atividades de crédito e arrendamento mercantil."
+      }
+    },
+    {
+      "id": "0f1597d165",
+      "idx": 2,
+      "afirmacao": "Não há menção explícita sobre a necessidade de conexão direta através das operadoras de telecomunicação independentes para todos os participantes.",
+      "dimensao": "afirmacao",
+      "humano": "apoiada",
+      "juiz": "nao_apoiada",
+      "juiz_novo": "nao_apoiada",
+      "detalhe": {
+        "afirmacao": "Não há menção explícita sobre a necessidade de conexão direta através das operadoras de telecomunicação independentes para todos os participantes.",
+        "veredito": "nao_apoiada",
+        "trecho": null,
+        "citacao": null,
+        "justificativa": "A afirmação diz que não há menção explícita sobre a necessidade de conexão direta através das operadoras de telecomunicação independentes para todos os participantes. Nenhum trecho menciona isso explicitamente."
+      }
+    },
+    {
+      "id": "20ae8154cd",
+      "idx": 2,
+      "afirmacao": "Essas instituições não estão em conformidade com os serviços especificamente mencionados no artigo 2º, incisos I e II.",
+      "dimensao": "afirmacao",
+      "humano": "nao_apoiada",
+      "juiz": "nao_apoiada",
+      "juiz_novo": "apoiada",
+      "detalhe": {
+        "afirmacao": "Essas instituições não estão em conformidade com os serviços especificamente mencionados no artigo 2º, incisos I e II.",
+        "veredito": "apoiada",
+        "trecho": 2,
+        "citacao": "I - participem exclusivamente de arranjos de pagamento de propósito limitado; ou II - prestem serviços de pagamento exclusivamente relacionados com: ",
+        "justificativa": "A afirmação diz que essas instituições não estão em conformidade com os serviços especificados no artigo 2º, incisos I e II. O trecho 2 menciona esses incisos e descreve os tipos de serviços a que se referem."
+      }
+    },
+    {
+      "id": "0087958844",
+      "idx": 3,
+      "afirmacao": "As instituições de pagamento devem definir métricas e indicadores adequados.",
+      "dimensao": "afirmacao",
+      "humano": "apoiada",
+      "juiz": "apoiada",
+      "juiz_novo": "apoiada",
+      "detalhe": {
+        "afirmacao": "As instituições de pagamento devem definir métricas e indicadores adequados.",
+        "veredito": "apoiada",
+        "trecho": 1,
+        "citacao": "II - a definição de métricas e indicadores adequados;",
+        "justificativa": ""
+      }
+    },
+    {
+      "id": "89837ea458",
+      "idx": 0,
+      "afirmacao": "O Banco Central autoriza as instituições a funcionar.",
+      "dimensao": "afirmacao",
+      "humano": "apoiada",
+      "juiz": "nao_apoiada",
+      "juiz_novo": "apoiada",
+      "detalhe": {
+        "afirmacao": "O Banco Central autoriza as instituições a funcionar.",
+        "veredito": "apoiada",
+        "trecho": 1,
+        "citacao": "Esta Circular dispõe sobre a política, os procedimentos e os controles internos a serem adotados pelas instituições autorizadas a funcionar pelo Banco Central do Brasil",
+        "justificativa": "O trecho afirma que a circular trata das políticas para as instituições autorizadas a funcionar pelo Banco Central."
+      }
+    },
+    {
+      "id": "fc9d3461c7",
+      "idx": 2,
+      "afirmacao": "As regras do Banco Central sobre constituição e funcionamento de instituições de pagamento não se aplicam a quem presta exclusivamente serviços de pagamento ligados a benefícios trabalhistas.",
+      "dimensao": "afirmacao",
+      "humano": "apoiada",
+      "juiz": "apoiada",
+      "juiz_novo": "apoiada",
+      "detalhe": {
+        "afirmacao": "As regras do Banco Central sobre constituição e funcionamento de instituições de pagamento não se aplicam a quem presta exclusivamente serviços de pagamento ligados a benefícios trabalhistas.",
+        "veredito": "apoiada",
+        "trecho": 1,
+        "citacao": "I - participem exclusivamente de arranjos de pagamento de propósito limitado; ou II - prestem serviços de pagamento exclusivamente relacionados com: a) programa destinado a conceder benefícios a pessoas naturais em função de relações de trabalho, de prestação de serviços ou similares, instituído por lei ou por ato do Poder Executivo federal, estadual ou municipal; ou b) auxílio-alimentação de que trata o § 2º do art. 457 da Consolidação das Leis do Trabalho, aprovada pelo Decreto-Lei nº 5.452, de 1º de maio de 1943, bem como com benefício de mesma natureza, para o pagamento de refeições em restaurantes e estabelecimentos similares ou para a aquisição de gêneros alimentícios em estabelecimentos comerciais, instituído por lei ou por ato do Poder Executivo federal, estadual ou municipal.",
+        "justificativa": "O trecho 1 menciona que instituições de pagamento não se aplicam às que prestam serviços de pagamento exclusivamente relacionados com programas de benefícios trabalhistas."
+      }
+    },
+    {
+      "id": "302ab88d0a",
+      "idx": 1,
+      "afirmacao": "Isso inclui definir processos, testes e trilhas de auditoria.",
+      "dimensao": "afirmacao",
+      "humano": "apoiada",
+      "juiz": "apoiada",
+      "juiz_novo": "apoiada",
+      "detalhe": {
+        "afirmacao": "Isso inclui definir processos, testes e trilhas de auditoria.",
+        "veredito": "apoiada",
+        "trecho": 4,
+        "citacao": "I - a definição de processos, testes e trilhas de auditoria;",
+        "justificativa": "O trecho define os mecanismos de acompanhamento e controle que devem ser instituídos pelas instituições, incluindo a definição de processos, testes e trilhas de auditoria."
+      }
+    },
+    {
+      "id": "7944eb1ce1",
+      "idx": 7,
+      "afirmacao": "O Art. 5º V - item c) menciona a implementação de controles físicos.",
+      "dimensao": "afirmacao",
+      "humano": "nao_apoiada",
+      "juiz": "nao_apoiada",
+      "juiz_novo": "apoiada",
+      "detalhe": {
+        "afirmacao": "O Art. 5º V - item c) menciona a implementação de controles físicos.",
+        "veredito": "apoiada",
+        "trecho": 2,
+        "citacao": "c) controles físicos de ativos de valor, como acesso restrito, dupla custódia e inventários periódicos;",
+        "justificativa": "O trecho menciona a implementação de controles físicos para ativos de valor.",
+        "trecho_informado": 3
+      }
+    },
+    {
+      "id": "65876c8dba",
+      "idx": 6,
+      "afirmacao": "Devem ser salvaguardados os ativos e as atividades relacionadas com a função financeira da instituição.",
+      "dimensao": "afirmacao",
+      "humano": "apoiada",
+      "juiz": "apoiada",
+      "juiz_novo": "apoiada",
+      "detalhe": {
+        "afirmacao": "Devem ser salvaguardados os ativos e as atividades relacionadas com a função financeira da instituição.",
+        "veredito": "apoiada",
+        "trecho": 4,
+        "citacao": "IV - a salvaguarda dos ativos e as atividades relacionadas com a função financeira da instituição;",
+        "justificativa": "O trecho menciona explicitamente a necessidade de salvaguardar os ativos e as atividades financeiras."
+      }
+    },
+    {
+      "id": "72b7652316",
+      "idx": 2,
+      "afirmacao": "As funções que o diretor indicado pode desempenhar não podem configurar conflito de interesses.",
+      "dimensao": "afirmacao",
+      "humano": "apoiada",
+      "juiz": "apoiada",
+      "juiz_novo": "apoiada",
+      "detalhe": {
+        "afirmacao": "As funções que o diretor indicado pode desempenhar não podem configurar conflito de interesses.",
+        "veredito": "apoiada",
+        "trecho": 1,
+        "citacao": "Para fins da responsabilidade de que trata o caput, admite-se que o diretor indicado desempenhe outras funções na instituição, exceto as que configurem conflito de interesses.",
+        "justificativa": "O trecho afirma explicitamente que o diretor pode desempenhar outras funções, desde que não configurem conflito de interesses."
+      }
+    },
+    {
+      "id": "8d15334c94",
+      "idx": 4,
+      "afirmacao": "O artigo 46 trata sobre essas questões.",
+      "dimensao": "afirmacao",
+      "humano": "apoiada",
+      "juiz": "nao_apoiada",
+      "juiz_novo": "apoiada",
+      "detalhe": {
+        "afirmacao": "O artigo 46 trata sobre essas questões.",
+        "veredito": "apoiada",
+        "trecho": 5,
+        "citacao": "Os procedimentos de análise referidos no art. 43 podem ser realizados de forma centralizada em instituição do conglomerado prudencial e do sistema cooperativo de crédito.",
+        "justificativa": "O artigo 46 trata sobre a possibilidade de centralização dos procedimentos de análise."
+      }
+    },
+    {
+      "id": "5d27a3605f",
+      "idx": 0,
+      "afirmacao": "O relatório anual deve abordar a efetividade da implementação das ações descritas no art. 6º, parágrafo único, inciso I.",
+      "dimensao": "afirmacao",
+      "humano": "apoiada",
+      "juiz": "apoiada",
+      "juiz_novo": "apoiada",
+      "detalhe": {
+        "afirmacao": "O relatório anual deve abordar a efetividade da implementação das ações descritas no art. 6º, parágrafo único, inciso I.",
+        "veredito": "apoiada",
+        "trecho": 1,
+        "citacao": "I - a efetividade da implementação das ações descritas no art. 6º, parágrafo único, inciso I;",
+        "justificativa": ""
+      }
+    },
+    {
+      "id": "f1850fd7b5",
+      "idx": 2,
+      "afirmacao": "A fonte é [1] e [2].",
+      "dimensao": "afirmacao",
+      "humano": "apoiada",
+      "juiz": "nao_apoiada",
+      "juiz_novo": "apoiada",
+      "detalhe": {
+        "afirmacao": "A fonte é [1] e [2].",
+        "veredito": "apoiada",
+        "trecho": 1,
+        "citacao": "A instituição deve possuir recursos e competências necessários para a adequada gestão dos serviços a serem contratados, inclusive para análise de informações e uso de recursos providos nos termos da alínea \"f\" do inciso II do caput.",
+        "justificativa": "As afirmações se referem à necessidade das instituições de possuírem recursos e competências para a gestão dos serviços em nuvem. Os trechos [1] e [2] expressam essa mesma ideia.",
+        "trecho_informado": [
+          1,
+          2
+        ]
+      }
+    },
+    {
+      "id": "645f14b457",
+      "idx": 2,
+      "afirmacao": "O Artigo 94 é a norma que regula essa situação.",
+      "dimensao": "afirmacao",
+      "humano": "apoiada",
+      "juiz": "nao_apoiada",
+      "juiz_novo": "apoiada",
+      "detalhe": {
+        "afirmacao": "O Artigo 94 é a norma que regula essa situação.",
+        "veredito": "apoiada",
+        "trecho": 3,
+        "citacao": "No processo de apuração de descumprimento que definirá a aplicação das penalidades de que trata este Capítulo, o Banco Central do Brasil observará o direito do participante ao contraditório e à ampla defesa e seguirá o rito e as condições estabelecidas no Manual de Penalidades do Pix.",
+        "justificativa": "O Artigo 94 define como será conduzido o processo de apuração de descumprimento, mencionando a aplicação das penalidades e seguindo o Manual de Penalidades do Pix. A afirmação diz que o Artigo 94 regula essa situação, e o trecho demonstra que ele é responsável por definir as regras para esse processo."
+      }
+    },
+    {
+      "id": "5e3049b79d",
+      "idx": 0,
+      "afirmacao": "A provisão para perdas esperadas associadas ao risco de crédito deve ser reconhecida após o reconhecimento de receitas de ativos financeiros.",
+      "dimensao": "afirmacao",
+      "humano": "apoiada",
+      "juiz": "nao_apoiada",
+      "juiz_novo": "apoiada",
+      "detalhe": {
+        "afirmacao": "A provisão para perdas esperadas associadas ao risco de crédito deve ser reconhecida após o reconhecimento de receitas de ativos financeiros.",
+        "veredito": "apoiada",
+        "trecho": 1,
+        "citacao": "A provisão para perdas esperadas associadas ao risco de crédito de ativos financeiros deve ser reconhecida, caso seja aplicável, após o reconhecimento de receitas de que trata o art. 15.",
+        "justificativa": ""
+      }
+    },
+    {
+      "id": "ce0082e98a",
+      "idx": 5,
+      "afirmacao": "As cooperativas de crédito enquadradas no Segmento 5 (S5) estão fora das regras sobre sistemas de controles internos estabelecidas pelo Banco Central do Brasil.",
+      "dimensao": "afirmacao",
+      "humano": "nao_apoiada",
+      "juiz": "nao_apoiada",
+      "juiz_novo": "apoiada",
+      "detalhe": {
+        "afirmacao": "As cooperativas de crédito enquadradas no Segmento 5 (S5) estão fora das regras sobre sistemas de controles internos estabelecidas pelo Banco Central do Brasil.",
+        "veredito": "apoiada",
+        "trecho": 3,
+        "citacao": "II - às cooperativas de crédito enquadradas no Segmento 5 (S5), conforme definido na regulamentação em vigor, integrantes de sistemas de dois ou de três níveis.",
+        "justificativa": "O trecho afirma que a Resolução não se aplica às cooperativas de crédito enquadradas no Segmento 5 (S5)."
+      }
+    },
+    {
+      "id": "ce0082e98a",
+      "idx": 7,
+      "afirmacao": "A auditoria interna deve ser avaliada anualmente para as instituições mencionadas no art. 1º.",
+      "dimensao": "afirmacao",
+      "humano": "nao_apoiada",
+      "juiz": "apoiada",
+      "juiz_novo": "apoiada",
+      "detalhe": {
+        "afirmacao": "A auditoria interna deve ser avaliada anualmente para as instituições mencionadas no art. 1º.",
+        "veredito": "apoiada",
+        "trecho": 2,
+        "citacao": "A auditoria interna da instituição contratante deve avaliar, anualmente, a efetividade dos mecanismos de controle de qualidade.",
+        "justificativa": ""
+      }
+    }
+  ]
+}
