@@ -62,3 +62,20 @@ Configuracao: corpus de 663 chunks (hash e4e72872fc02), embedding bge-m3 (Ollama
 - A recuperacao deu identica nas 3 rodadas (deterministica). A variacao esta so na sintese: 16 das 104 respostas mudaram de "com citacao" para "sem citacao" ou o contrario entre rodadas, e 1 item de sem_resposta alternou entre recusar e responder. Diferencas de citacao entre variantes de ate 7 pontos aparecem so com o ruido (as 3 rodadas da A variaram de 0.81 a 0.88); comparar variantes sempre com 3 rodadas.
 - Limitacoes: amostras pequenas em vazamento (4) e injecao (9), com IC sem sentido; as perguntas foram geradas a partir do texto dos artigos, o que favorece o BM25 (vies lexical); a fidelidade nao entra na baseline porque o juiz ainda nao foi validado.
 
+## Fidelidade por afirmacao: juizes locais nao validados (18/10)
+- Juiz novo (judge-v1 --fidelidade afirmacoes): extrai as afirmacoes da resposta e julga cada uma contra os trechos (apoiada / nao_apoiada). "Apoiada" exige citacao copiada do trecho, conferida pelo codigo (literal apos normalizar, ou >=75% dos pares de palavras, e todos os numeros presentes); o numero do trecho informado pelo juiz e so pista (modelos pequenos confundem com o numero do artigo).
+- Ajustes feitos vendo a rodada A1 (conjunto de desenvolvimento): prompts mais rigidos, checagem de citacao, extrator mantendo condicoes ("exclusivamente", "exceto"). Uma camada que aprovava afirmacoes quase literais sem consultar o modelo foi testada e REMOVIDA: aprovava justamente afirmacoes que perderam "exclusivamente", "exceto" ou "somente".
+- Validacao na rodada A2 (conjunto separado, nao usado nos ajustes): 30 afirmacoes sorteadas, estratificadas pelo veredito do juiz; 29 rotuladas pela revisora sem ver o juiz (1 pulada). 3 itens foram discutidos durante a rotulagem (criterio, sem revelar veredito): d1924800d4#2, a041e2b999#7, af082757bc#2.
+- Resultados (mesmas 29 afirmacoes, mesmos rotulos; judge-claims-compare so repete a verificacao):
+
+  | juiz | acordo | kappa | sem apoio detectadas (de 10) | "sem apoio" correto |
+  |---|---|---|---|---|
+  | llama3.1:8b | 0.59 | 0.16 (IC 95% -0.19 a 0.50) | 6 | 6 de 14 |
+  | gemma2:9b | 0.72 | 0.29 | 3 | 3 de 4 |
+  | "sempre apoiada" (referencia) | 0.66 | 0 | 0 | - |
+
+- Leitura: o llama3.1 e rigoroso demais (nega apoio a frases literais, ex.: 5e3049b79d, Art. 19); o gemma2 e leniente (diz "apoiada" em 25 de 29) e fica pouco acima de um juiz que aprova tudo. O acordo sozinho engana: com 66% das afirmacoes verdadeiras, aprovar tudo ja da 0.66.
+- O extrator (llama3.1) tambem falha: 6 de 29 afirmacoes nao sao afirmacoes sobre normas ("A fonte e [1] e [2]", "O artigo 46 trata disso") e 3 sao ambiguas ("Ela...", "O § 1º..." sem artigo), apesar da regra explicita. Sem essas e sem as 3 discutidas, o kappa do llama3.1 sobe a 0.36 (analise feita depois de ver os dados; so complementar).
+- Conclusao: a fidelidade medida por juiz local NAO entra na comparacao entre variantes. A ablacao usa os sinais que nao dependem de modelo (recuperacao, recusa, citacao, canario, filtro de saida). O gpt-4o-mini nao foi testado (sem chave de API); judge-claims-compare permite testar qualquer juiz nos mesmos 29 rotulos.
+- Limitacoes: amostra pequena (29 afirmacoes, uma revisora); IC largo.
+
