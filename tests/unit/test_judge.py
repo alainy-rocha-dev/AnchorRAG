@@ -304,9 +304,11 @@ def test_amostra_afirmacoes_equilibra_e_agrupa_por_item():
     ("O escopo da atividade de auditoria interna deve considerar todas as funções", True),
     ("o escopo da atividade de AUDITORIA interna deve considerar, todas as funcoes", True),  # caixa, acento, pontuação
     ("O escopo da atividade de auditoria interna (...) todas as funções da instituição", True),  # cópia com reticências
-    ("O escopo da atividade de auditoria interna deve considerar todas as áreas da instituição", False),  # trocou palavra
+    ("O escopo da atividade de auditoria interna deve considerar todas as funções da instituiçã", True),  # erro de cópia
+    ("incluindo as terceirizadas", True),  # curta, mas literal
     ("A auditoria interna pode avaliar suas próprias atividades recentes", False),  # inventada
-    ("auditoria interna", False),  # curta demais para provar algo
+    ("O escopo do Art. 12 da atividade de auditoria interna deve considerar todas as funções", False),  # número que não está lá
+    ("auditoria", False),  # uma palavra não prova nada
     ("", False),
 ])
 def test_citacao_confere(citacao, esperado):
@@ -333,3 +335,5 @@ async def test_apoio_exige_citacao_existente_e_corrige_numero_do_trecho():
     assert (a2["veredito"], a2["trecho"]) == ("apoiada", 1) and "trecho_informado" not in a2
     assert v["veredito"] == "nao_fiel"
     assert "de 1 a 2" in llm.chamadas[1]["prompt"]
+
+
