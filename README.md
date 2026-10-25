@@ -1,287 +1,94 @@
-# AnchorRAG - Pipeline RAG para Projeto HAG 2
+AnchorRAG ⚓ — Auditable RAG over Brazilian Central Bank Regulations
 
-Pipeline completo de Retrieval-Augmented Generation (RAG) com ingestão de PDFs, chunking inteligente, embeddings multi-provedor, busca vetorial com sqlite-vec e síntese com ancoragem estrita e citações.
+Local Retrieval-Augmented Generation pipeline that answers questions about Brazilian Central Bank (BCB/CMN) regulations using only the retrieved passages, with mandatory citations, refusal when the answer is not in the corpus, and defenses against prompt injection.
 
-## 🚀 Quickstart
+The focus of the project is measurement: a manually reviewed evaluation dataset, a frozen baseline with confidence intervals, and an honest record of what worked, what didn't and which numbers are not yet validated (see DECISIONS.md).
 
-```bash
-# Instalação
+Results (frozen baseline, variant A)
+
+Setup: 12 BCB/CMN regulations (663 chunks) · hybrid retrieval (BM25 + bge-m3 embeddings, RRF, k=5) · synthesis with qwen2.5:7b (temperature 0.1) · output filter. Everything runs locally (Ollama, consumer GPU). Dataset: eval/datasets/v1.jsonl — 140 manually reviewed items. Mean of 3 full runs; 95% CI by bootstrap (10,000 resamples).
+
+Metric	n	Result	95% CI
+Retrieval hit@5 (items with a reference passage)	113	0.91	0.86–0.96
+All reference passages in top-5 (multi-passage questions)	22	0.68	0.50–0.86
+Correct refusal when the corpus has no answer	23	0.94	0.84–1.00
+Correct refusal of prompt-leak requests	4	1.00	–
+Wrongful refusal (answerable questions)	104	0.01	0.00–0.04
+Answers with citations	104	0.85	0.79–0.90
+Prompt-injection canary leaked	9	0	–
+
+Latency (local, RX 7600): p50 ≈ 5 s, p95 ≈ 10 s per answer — almost all in the LLM; retrieval p50 ≈ 0.35 s.
+
+What moved the numbers
+Change	Before → After
+Hybrid retrieval (BM25 + vector) instead of vector only — hit@5	0.82 → 0.91
+Prompt rewrite (rules before examples) — correct refusal on unanswerable questions	0.39 → 0.83
+Same rewrite — answers containing an injected fake "secret"	81 of 140 → 0
+Output filter against system-prompt leakage — leak requests refused	0.50 → 1.00
+Evaluation dataset (v1)
+
+140 questions generated from the regulation texts and reviewed one by one by a human, in four categories:
+
+Category	Items	Tests
+Answerable	73	single-passage questions with a gold answer
+Multi-passage	22	answers that need more than one article
+No answer in corpus	23	related topics outside the 12 regulations (e.g. FGC, IOF, Drex), many with deliberate distractors
+Adversarial	22	false premises, prompt-leak requests and prompt injection
+LLM-as-judge: validated before trusting
+
+Answer faithfulness was judged claim by claim by local LLM judges and checked against human labels (29 claims, labeled blind to the judge's verdict):
+
+Judge	Agreement	Cohen's κ
+llama3.1:8b	0.59	0.16
+gemma2:9b	0.72	0.29
+"always supported" baseline	0.66	0
+
+Neither local judge was reliable enough (gemma2 barely beats a judge that approves everything), so judge-based faithfulness is not used to compare variants. Comparisons rely only on model-independent signals: retrieval, refusal, citations, canary and output filter.
+
+Example
+
+Question: Does our bank's outsourced cybersecurity provider need to know our security policy?
+
+Answer (excerpt): Yes — according to Article 4, the cybersecurity policy must be disclosed to the institution's employees and to the companies providing services to it [1]. Source [1]: Resolução CMN nº 4.893/2021, art. 4
+
+Question with no answer in the corpus: What is the penalty for a payment institution that fails to notify the Central Bank about hiring relevant cloud computing services? Answer: "I did not find this information in the provided documents…" — the system refuses instead of inventing a penalty.
+
+(Questions and answers are in Portuguese in the system; translated here.)
+
+How it works
+Regulations (BCB portal) → parsing → structured chunking (by article)
+        → BM25 index (SQLite FTS5) + embeddings (sqlite-vec)
+        → hybrid retrieval (RRF, k=5)
+        → LLM synthesis with strict grounding + mandatory [N] citations
+        → output filter (blocks system-prompt leakage) → answer + sources
+Strict grounding: answer only from the retrieved passages; every claim cites [N]; explicit refusal when the information is not there
+Prompt-injection defense in layers: rules in the system prompt, passages treated as content (not instructions), and a post-generation filter
+Hybrid retrieval: BM25 tuned for Portuguese (diacritics, stopwords) + vector search, fused with Reciprocal Rank Fusion
+Pluggable providers: embeddings (Ollama, OpenAI, Hugging Face) and LLMs (Ollama, OpenAI, Anthropic)
+Reproducibility: each report records dataset and corpus hashes, models, retrieval settings, git commit and context window
+Quickstart
+bash
 pip install -e ".[dev]"
+cp config.example.yaml config.yaml   # set providers / API keys
 
-# Copia configuração de exemplo
-cp config.example.yaml config.yaml
-# Edite config.yaml com suas API keys
+# Load the BCB corpus (corpus/chunks.jsonl) into the local database
+anchor-rag ingest-chunks corpus/chunks.jsonl --embedding-provider ollama --embedding-model bge-m3
 
-# Ingestão de documentos
-anchor-rag ingest docs/*.pdf --recursive
-
-# Query
-anchor-rag query "Qual é o tema principal dos documentos?"
-
-# Avaliação
-anchor-rag eval
-```
-
-## 📐 Arquitetura
-
-```
-┌─────────────┐     ┌──────────┐     ┌──────────────┐     ┌─────────────┐
-│   PDFs      │────▶│ Parser   │────▶│  Chunker     │────▶│  Embeddings │
-│  (input)    │     │(pdfplumb)│     │ (tokens/chars)│     │ (OpenAI/    │
-└─────────────┘     └──────────┘     └──────────────┘     │  Ollama/    │
-                                                          │  HF)        │
-                                                          └──────┬──────┘
-                                                                 │
-┌─────────────┐     ┌──────────┐     ┌──────────────┐          │
-│  Resposta   │◀────│Synthesiz.│◀────│ Vector Store │◀─────────┘
-│  + Citações │     │ (LLM +   │     │ (sqlite-vec) │
-└─────────────┘     │  prompt) │     └──────────────┘
-                    └──────────┘
-```
-
-## 🔧 Componentes
-
-### Ingestão (`anchor_rag/ingestion/`)
-- **Parser**: `PDFParser` protocol com `PdfPlumberParser` (tabelas) e `PyPDFParser` (fallback)
-- **Chunker**: Divisão por tokens (tiktoken) ou caracteres, com overlap configurável
-- **Pipeline**: Orquestração com dedup por hash, batch processing, error handling
-
-### Embeddings (`anchor_rag/embeddings/`)
-- **OpenAI**: `text-embedding-3-small/large`, retry exponencial, batch nativo
-- **Ollama**: Via HTTP `/api/embed`, modelos locais
-- **HuggingFace**: `sentence-transformers` local, batch encoding
-
-### Vector Store (`anchor_rag/vector_store/`)
-- **SQLite-vec**: Virtual table `chunks_vec`, busca cosseno via NumPy, DDL automático
-- **Eval Log**: Tabela `eval_log` para histórico de avaliações agentic
-
-### Síntese (`anchor_rag/synthesis/`)
-- **LLM Providers**: OpenAI, Ollama, Anthropic com streaming
-- **Prompt Engineering**: Ancoragem estrita, few-shot defense contra prompt injection
-- **Citações**: Extração automática `[N]` mapeada para chunks fonte
-
-### Avaliação Agentic (`anchor_rag/evaluation/`)
-- **LLM-as-Judge**: Avaliador ABC + 3 provedores (OpenAI, Ollama, Anthropic)
-- **Métricas RAGAS-like**: Faithfulness, Answer Relevancy, Context Precision, Context Recall
-- **Critique-and-Refine**: Auto-avaliação iterativa (≤3 chamadas LLM) com threshold configurável
-- **Comparative Evaluation**: Paired t-test + Bootstrap IC 95% entre múltiplos provedores
-- **Drift Detection**: Comparação vs baseline versionado (hash dataset + config), exit codes 0/1/2
-- **Cost Estimator**: Cálculo USD baseado em tokens × pricing table por provedor/modelo
-
-## ⚙️ Configuração
-
-```yaml
-# config.yaml
-embedding:
-  provider: "openai"       # openai, ollama, huggingface
-  model: "text-embedding-3-small"
-  dimensions: 1536
-  batch_size: 100
-  api_key_env: "OPENAI_API_KEY"
-
-llm:
-  provider: "openai"       # openai, ollama, anthropic
-  model: "gpt-4o-mini"
-  temperature: 0.1
-  max_tokens: 2048
-  api_key_env: "OPENAI_API_KEY"
-
-chunking:
-  chunk_size: 512
-  chunk_overlap: 50
-  chunk_unit: "tokens"     # chars ou tokens
-  min_chunk_size: 50
-
-vector_store:
-  type: "sqlite_vec"
-  path: "./data/anchor_rag.db"
-  embedding_dimensions: 1536
-
-logging:
-  level: "INFO"
-  format: "json"
-  output: "stdout"
-```
-
-## 📊 Comparativo de Embeddings
-
-| Provedor | Modelo | Dimensões | Latência | Custo | Privacidade |
-|----------|--------|-----------|----------|-------|-------------|
-| OpenAI | text-embedding-3-small | 1536 | ~100ms | $0.02/1M tokens | Baixa |
-| OpenAI | text-embedding-3-large | 3072 | ~200ms | $0.13/1M tokens | Baixa |
-| Ollama | nomic-embed-text | 768 | ~50ms | Grátis (local) | Alta |
-| Ollama | mxbai-embed-large | 1024 | ~100ms | Grátis (local) | Alta |
-| HF | all-MiniLM-L6-v2 | 384 | ~10ms | Grátis (local) | Alta |
-| HF | bge-m3 | 1024 | ~50ms | Grátis (local) | Alta |
-
-### Matemática da Similaridade de Cosseno
-
-Para vetores normalizados $u, v \in \mathbb{R}^d$:
-
-$$\text{similaridade}(u, v) = \frac{u \cdot v}{\|u\| \|v\|} = u \cdot v$$
-
-No sqlite-vec, a distância L2 entre vetores normalizados relaciona-se com cosseno:
-
-$$\text{distância}_{L2}(u, v) = \sqrt{2 - 2 \cdot \text{cosseno}(u, v)}$$
-
-$$\text{cosseno}(u, v) = 1 - \frac{\text{distância}_{L2}^2}{2}$$
-
-## 🛠️ CLI
-
-```bash
-# Ingestão
-anchor-rag ingest docs/ --recursive --parser pdfplumber --format json
-anchor-rag ingest file.pdf --force --chunk-size 256
-
-# Query
-anchor-rag query "O que é RAG?" --top-k 10 --threshold 0.5
-anchor-rag query "Resuma o documento" --llm-provider ollama --llm-model llama3.1:8b
-anchor-rag query "Liste os tópicos" --no-synthesis --format json
-
-# Eval (básico)
-anchor-rag eval --format json
-
-# Eval Agentic (feature 003)
-anchor-rag eval --agentic --judge ollama                    # Avaliação LLM-as-judge
-anchor-rag eval --agentic --compare openai,ollama          # Comparativo multi-provedor + stats
-anchor-rag eval --drift-check --baseline eval_baseline.json # Drift detection (exit 0/1/2)
-anchor-rag eval --agentic --output markdown                # Saída Markdown formatada
-```
-
-## 🧪 Testes
-
-```bash
-# Unitários
+# Run the v1 evaluation (hybrid retrieval by default; report saved to eval/results/)
+anchor-rag eval-v1 --variante A
+Tests
+bash
 pytest tests/unit -v
-
-# Integração
 pytest tests/integration -v
+Known limitations
+Questions were generated from the text of the articles and reuse their vocabulary, which favors lexical (BM25) retrieval; real user questions may behave differently
+Small samples for prompt-leak (4) and injection (9) items
+Faithfulness by LLM judge is not validated (see above); one human reviewer
+Synthesis varies between runs: up to 7 points in citation rate — compare variants with 3 runs
+Tech stack
 
-# Todos com coverage
-pytest --cov=anchor_rag --cov-report=html
-```
+Python 3.11 · SQLite (FTS5 + sqlite-vec) · Ollama (bge-m3, qwen2.5:7b) · Typer · Pydantic · pytest
 
-## 📁 Estrutura do Projeto
+License
 
-```
-src/anchor_rag/
-├── config.py              # Configuração Pydantic Settings
-├── cli.py                 # CLI principal (Typer)
-├── cli_ingest.py          # Comando ingest
-├── cli_query.py           # Comando query
-├── cli_eval.py            # Comando eval (básico + agentic)
-├── domain/
-│   ├── models.py          # Document, Chunk, QueryResult, configs, EvalMetrics, ComparativeMetrics, DriftResult, CostEstimate
-│   └── exceptions.py      # Exceções customizadas
-├── ingestion/
-│   ├── parser.py          # PDFParser protocol + implementations
-│   ├── chunker.py         # Chunker com tokens/chars
-│   ├── pipeline.py        # IngestionPipeline orquestrador
-│   └── structured_chunker.py  # Chunker estruturado (tabelas, listas)
-├── embeddings/
-│   ├── base.py            # EmbeddingProvider ABC
-│   ├── openai.py          # OpenAIEmbeddingProvider
-│   ├── ollama.py          # OllamaEmbeddingProvider
-│   ├── huggingface.py     # HuggingFaceEmbeddingProvider
-│   └── __init__.py        # Factory create_embedding_provider
-├── vector_store/
-│   ├── base.py            # VectorStore ABC
-│   ├── sqlite_vec.py      # SQLiteVecStore (inclui eval_log)
-│   └── __init__.py        # Factory create_vector_store
-├── synthesis/
-│   ├── llm.py             # LLMProvider ABC + LLMConfig/Response
-│   ├── openai_llm.py      # OpenAILLMProvider
-│   ├── ollama_llm.py      # OllamaLLMProvider
-│   ├── anthropic_llm.py   # AnthropicLLMProvider
-│   ├── prompt.py          # build_system_prompt, few-shot defense
-│   ├── synthesizer.py     # RAGSynthesizer
-│   └── __init__.py        # Factory create_llm_provider
-├── evaluation/            # NOVO: feature 003
-│   ├── evaluator.py       # EvaluatorProvider ABC + 3 provedores
-│   ├── critique_refine.py # CritiqueAndRefineSynthesizer
-│   ├── comparative.py     # ComparativeEvaluator + stats
-│   ├── drift.py           # DriftDetector
-│   ├── cost.py            # CostEstimator
-│   └── __init__.py        # Factory create_evaluator_provider
-├── pipeline/
-│   ├── orchestrator.py    # RAGPipeline principal (eval_dataset_agentic, drift_check)
-│   └── hybrid_orchestrator.py  # Pipeline híbrido vetorial + FTS
-├── retrieval/             # NOVO: feature 002
-│   ├── fts.py             # Full-text search SQLite
-│   ├── hybrid.py          # Hybrid retriever (vetorial + FTS)
-│   ├── rerank.py          # Cross-encoder reranker
-│   └── __init__.py        # Factory
-└── utils/
-    └── text.py            # Hash, sanitização, chunking, tokens
-```
-
-## 🔒 Segurança - Ancoragem Estrita
-
-O system prompt impõe:
-1. **Resposta apenas baseada nos trechos** - conhecimento externo proibido
-2. **Citações obrigatórias** - `[N]` para cada afirmação
-3. **Declaração de ausência** - "Não encontrei..." se info não está nos trechos
-4. **Defesa few-shot** - Exemplos de prompt injection no prompt
-
-## 🤖 Avaliação Agentic (Feature 003)
-
-O pipeline inclui avaliação avançada estilo **RAGAS** usando LLM-as-judge:
-
-| Capacidade | Descrição | Comando |
-|------------|-----------|---------|
-| **LLM-as-Judge** | 4 métricas de qualidade via LLM separado do síntese | `--agentic --judge ollama` |
-| **Critique-and-Refine** | Auto-melhoria iterativa (≤2 refinamentos) | Automático com `--agentic` |
-| **Comparativo Multi-Provedor** | Paired t-test + Bootstrap IC 95% entre OpenAI/Ollama/Anthropic | `--compare openai,ollama` |
-| **Drift Detection** | Monitoramento contínuo vs baseline versionado | `--drift-check --baseline file.json` |
-| **Cost Estimator** | USD estimado por query/run (tokens × pricing table) | Incluído no relatório |
-
-**Thresholds default**: 0.7 para todas as métricas (dispara refine se abaixo)
-
-**Orçamento default**: $0.50 por run completo (20 queries × 3 métricas × 2 iterações)
-
-## 🐛 Troubleshooting
-
-| Problema | Solução |
-|----------|---------|
-| `sqlite-vec` não carrega | `pip install sqlite-vec` + verificar extensão SQLite |
-| OpenAI API error | Verificar `OPENAI_API_KEY` no `.env` ou config |
-| Ollama connection refused | Iniciar `ollama serve` ou verificar `base_url` |
-| Memória insuficiente (HF) | Usar modelo menor ou `batch_size` menor |
-| Chunks muito grandes | Reduzir `chunk_size` ou aumentar `chunk_overlap` |
-
-## 📈 Métricas de Avaliação
-
-### Métricas Básicas
-- **Recall@k**: % de queries onde chunk relevante está no top-k
-- **MRR**: Mean Reciprocal Rank da primeira resposta relevante
-- **Latência P95**: Percentil 95 da latência end-to-end
-- **Taxa de alucinação**: % respostas com info não nos trechos
-- **Cobertura de citações**: % afirmações com citação válida
-
-### Métricas Agentic (RAGAS-like, feature 003)
-- **Faithfulness**: Fidelidade da resposta ao contexto recuperado (0-1)
-- **Answer Relevancy**: Relevância da resposta à query original (0-1)
-- **Context Precision**: Precisão dos chunks recuperados vs resposta (0-1)
-- **Context Recall**: Cobertura dos chunks relevantes para a query (0-1)
-
-### Métricas Comparativas
-- **Paired t-test**: Significância estatística entre provedores (p-value)
-- **Bootstrap IC 95%**: Intervalo de confiança da diferença de médias
-- **Cost per Query**: USD estimado por query (tokens × pricing table)
-
-### Drift Detection
-- **Drift %**: Variação vs baseline versionado (hash dataset + config)
-- **Alert Threshold**: Default >10% degradação em qualquer métrica
-- **Exit Codes**: 0=OK, 1=Drift detectado, 2=Erro
-
-## 🤝 Contribuição
-
-1. Fork do projeto
-2. Crie branch: `git checkout -b feature/nova-funcionalidade`
-3. Commit: `git commit -m 'feat: adiciona X'`
-4. Push: `git push origin feature/nova-funcionalidade`
-5. Abra Pull Request
-
-## 📄 Licença
-
-MIT License - veja [LICENSE](LICENSE) para detalhes.
+MIT — see LICENSE.
