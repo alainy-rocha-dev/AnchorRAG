@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-22T19:26:00-03:00",
+  "treemap_loc_by_folder": [
+    { "folder": "synthesis", "loc": 520, "modules": 5 },
+    { "folder": "ingestion", "loc": 450, "modules": 3 },
+    { "folder": "vector_store", "loc": 410, "modules": 2 },
+    { "folder": "embeddings", "loc": 380, "modules": 4 },
+    { "folder": "cli", "loc": 350, "modules": 4 },
+    { "folder": "pipeline", "loc": 280, "modules": 1 },
+    { "folder": "domain", "loc": 250, "modules": 2 },
+    { "folder": "config", "loc": 180, "modules": 1 },
+    { "folder": "utils", "loc": 120, "modules": 2 },
+    { "folder": "logging", "loc": 90, "modules": 1 }
+  ],
+  "top_complexity": [
+    { "id": "src/anchor_rag/synthesis/synthesizer.py", "complexity": 18, "loc": 210 },
+    { "id": "src/anchor_rag/ingestion/pipeline.py", "complexity": 15, "loc": 190 },
+    { "id": "src/anchor_rag/vector_store/sqlite_vec.py", "complexity": 14, "loc": 240 },
+    { "id": "src/anchor_rag/embeddings/openai.py", "complexity": 12, "loc": 160 },
+    { "id": "src/anchor_rag/cli_eval.py", "complexity": 11, "loc": 140 }
+  ],
+  "language_distribution": [
+    { "language": "Python 3.11+", "modules": 25, "loc": 3200 }
+  ]
+}

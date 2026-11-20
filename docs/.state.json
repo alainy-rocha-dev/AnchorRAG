@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "startedAt": "2026-09-22T19:24:00-03:00",
+  "lastCheckpoint": "2026-09-22T19:26:00-03:00",
+  "pipelineDurationMs": 15400,
+  "completedAgents": ["mapper", "analyst", "storyteller", "publisher"],
+  "pendingAgents": [],
+  "pages": {
+    "index.html": { "status": "created", "agent": "reversa-docs-publisher" },
+    "arquitetura.html": { "status": "created", "agent": "reversa-docs-mapper" },
+    "modulos.html": { "status": "created", "agent": "reversa-docs-mapper" },
+    "metricas.html": { "status": "created", "agent": "reversa-docs-analyst" },
+    "glossario.html": { "status": "created", "agent": "reversa-docs-storyteller" },
+    "deck.html": { "status": "created", "agent": "reversa-docs-storyteller" },
+    "features/001-pipeline-rag-hag2.html": { "status": "created", "agent": "reversa-docs-storyteller" }
+  },
+  "pagesGenerated": [
+    "index.html",
+    "arquitetura.html",
+    "modulos.html",
+    "metricas.html",
+    "glossario.html",
+    "deck.html",
+    "features/001-pipeline-rag-hag2.html"
+  ],
+  "pagesOmitted": [],
+  "auxiliaryHtmls": [],
+  "auxiliaryHtmlsDiscovered": 0,
+  "auxiliaryDiscoveryAborted": false,
+  "cdnFallbackUsed": false,
+  "cdnFallbackDetails": [],
+  "vendorMissing": [],
+  "smokeTestFailed": false,
+  "smokeTestErrors": [],
+  "brokenLinks": []
+}
