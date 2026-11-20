@@ -360,3 +360,38 @@ async def test_ollama_envia_num_ctx_quando_configurado(monkeypatch):
 
     assert enviados[0]["num_ctx"] == 8192
     assert "num_ctx" not in enviados[1]  # sem configuração: padrão do servidor
+
+
+@pytest.mark.asyncio
+async def test_citacao_valida_medida_em_qualquer_variante(store, arquivos):
+    # sem verificador no laço, a resposta com artigo inventado é registrada como citação inválida
+    def responde(sistema, usuario):
+        return "Segundo o art. 9, a revisão é anual [1]."
+
+    pipeline = SimpleNamespace(embedder=Embedder(PERGUNTA_PARA_TRECHO), vector_store=store,
+                               synthesizer=RAGSynthesizer(EchoLLM(responde)))
+    itens = [i for i in load_v1(arquivos[1]) if i.subtipo == "respondivel"]
+    rs = await evaluate_v1(pipeline, itens, k=2)
+    assert rs[0].citacao_valida is False
+    assert rs[0].problemas_citacao == ["artigo_nao_citado: art. 9 não aparece nos trechos citados"]
+    assert rs[0].verificador is None
+    assert summarize(rs)["respondivel"]["citacao_valida"] == 0.0
+
+
+@pytest.mark.asyncio
+async def test_verificador_no_laco_aparece_na_avaliacao(store, arquivos):
+    respostas = iter(["Segundo o art. 9, a revisão é anual [1].", "A revisão da política é anual [1]."])
+
+    def responde(sistema, usuario):
+        return next(respostas)
+
+    pipeline = SimpleNamespace(
+        embedder=Embedder(PERGUNTA_PARA_TRECHO), vector_store=store,
+        synthesizer=RAGSynthesizer(EchoLLM(responde), SynthesizerConfig(verificador=True)),
+    )
+    itens = [i for i in load_v1(arquivos[1]) if i.subtipo == "respondivel"]
+    rs = await evaluate_v1(pipeline, itens, k=2)
+    assert rs[0].verificador == "corrigida" and rs[0].voltas == 1
+    assert rs[0].citacao_valida is True
+    m = summarize(rs)["respondivel"]
+    assert m["verif_corrigida"] == 1.0 and m["verif_recusada"] == 0.0

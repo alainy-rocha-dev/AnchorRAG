@@ -8,6 +8,7 @@ import logging
 
 from anchor_rag.synthesis.llm import LLMProvider, LLMResponse
 from anchor_rag.synthesis.prompt import build_messages, ChunkWithScore, RECUSA_PADRAO, vazou_regras
+from anchor_rag.synthesis.verifier import artigo_do_chunk_id, mensagem_de_reparo, verificar
 from anchor_rag.domain.models import Chunk, QueryResult
 
 logger = logging.getLogger(__name__)
@@ -22,6 +23,10 @@ class SynthesizerConfig:
     include_few_shot: bool = True
     citation_format: str = "[{index}]"  # Como formatar citações
     output_filter: bool = True  # troca por recusa a resposta que reproduz as regras internas
+    # Variante C: verificador determinístico de citações com reparo. Sem citação válida
+    # depois de `voltas_max` reescritas, a resposta vira a recusa padrão.
+    verificador: bool = False
+    voltas_max: int = 2
 
 
 class RAGSynthesizer:
@@ -112,6 +117,54 @@ class RAGSynthesizer:
         start = time.perf_counter()
         response: LLMResponse = await self.llm.complete(messages)
         llm_latency = (time.perf_counter() - start) * 1000
+        tokens_in, tokens_out = response.input_tokens, response.output_tokens
+
+        # Verificador (variante C): confere citações, artigos e números contra os trechos
+        # entregues e devolve a resposta ao redator, no máximo `voltas_max` vezes.
+        verif_meta = None
+        if cfg.verificador:
+            trechos = [c.content for c in chunks_with_score]
+            artigos = [artigo_do_chunk_id((c.metadata or {}).get("chunk_id")) for c in chunks_with_score]
+            historico = []
+            voltas = 0
+            v = verificar(response.content, trechos, artigos, query)
+            historico.append([str(p) for p in v.problemas])
+            while not v.ok and voltas < cfg.voltas_max and not vazou_regras(response.content):
+                voltas += 1
+                messages = messages + [
+                    {"role": "assistant", "content": response.content},
+                    {"role": "user", "content": mensagem_de_reparo(v)},
+                ]
+                t = time.perf_counter()
+                response = await self.llm.complete(messages)
+                llm_latency += (time.perf_counter() - t) * 1000
+                tokens_in = (tokens_in or 0) + (response.input_tokens or 0)
+                tokens_out = (tokens_out or 0) + (response.output_tokens or 0)
+                v = verificar(response.content, trechos, artigos, query)
+                historico.append([str(p) for p in v.problemas])
+            if v.ok:
+                resultado = "aprovada" if voltas == 0 else "corrigida"
+            elif vazou_regras(response.content):
+                resultado = "filtro_saida"  # o filtro abaixo decide
+            else:
+                resultado = "recusada"
+            verif_meta = {"resultado": resultado, "voltas": voltas, "problemas": historico}
+            if resultado == "recusada":
+                logger.info("verificador: sem citação válida após %d volta(s); resposta trocada pela recusa", voltas)
+                return QueryResult(
+                    answer=RECUSA_PADRAO,
+                    citations=[],
+                    chunks_used=[],
+                    scores=[],
+                    latency_ms={"llm": llm_latency, "total": llm_latency},
+                    metadata={
+                        "model": response.model,
+                        "input_tokens": tokens_in,
+                        "output_tokens": tokens_out,
+                        "chunks_considered": len(chunks_with_score),
+                        "verificador": verif_meta,
+                    },
+                )
 
         # Extrai citações da resposta
         citation_indices = self._extract_citations(response.content, len(chunks_with_score))
@@ -155,10 +208,11 @@ class RAGSynthesizer:
                 latency_ms={"llm": llm_latency, "total": llm_latency},
                 metadata={
                     "model": response.model,
-                    "input_tokens": response.input_tokens,
-                    "output_tokens": response.output_tokens,
+                    "input_tokens": tokens_in,
+                    "output_tokens": tokens_out,
                     "chunks_considered": len(chunks_with_score),
                     "filtro_saida": "vazamento_de_instrucoes",
+                    **({"verificador": verif_meta} if verif_meta else {}),
                 },
             )
 
@@ -170,8 +224,9 @@ class RAGSynthesizer:
             latency_ms={"llm": llm_latency, "total": llm_latency},
             metadata={
                 "model": response.model,
-                "input_tokens": response.input_tokens,
-                "output_tokens": response.output_tokens,
+                "input_tokens": tokens_in,
+                "output_tokens": tokens_out,
                 "chunks_considered": len(chunks_with_score),
+                **({"verificador": verif_meta} if verif_meta else {}),
             },
         )
