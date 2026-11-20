@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Módulos 2D — AnchorRAG Docs</title>
+  <meta name="reversa-category" content="diagram">
+  <meta name="reversa-producer-agent" content="reversa-docs-mapper">
+  <meta name="reversa-template" content="modulos">
+  <style>
+    :root {
+      --bg: #0d1117;
+      --card-bg: #161b22;
+      --border: #30363d;
+      --text: #c9d1d9;
+      --text-heading: #f0f6fc;
+      --accent: #58a6ff;
+    }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+    header {
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.25rem;
+      color: var(--text-heading);
+    }
+    header nav.reversa-doc-nav {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    header nav a {
+      color: var(--text);
+      text-decoration: none;
+      font-size: 0.85rem;
+      padding: 6px 12px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      line-height: 1;
+      height: 34px;
+      box-sizing: border-box;
+      transition: all 0.2s ease;
+    }
+    header nav a:hover, header nav a[aria-current="page"] {
+      background: rgba(88, 166, 255, 0.15);
+      color: var(--accent);
+    }
+    header nav a.nav-deck-btn {
+      background: linear-gradient(135deg, rgba(168, 85, 247, 0.25) 0%, rgba(88, 166, 255, 0.25) 100%);
+      border: 1px solid rgba(168, 85, 247, 0.5);
+      color: #d8b4fe;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 20px;
+      transition: all 0.25s ease;
+      box-shadow: 0 0 10px rgba(168, 85, 247, 0.2);
+      display: inline-flex;
+      align-items: center;
+      line-height: 1;
+      height: 34px;
+      box-sizing: border-box;
+    }
+    header nav a.nav-deck-btn:hover, header nav a.nav-deck-btn[aria-current="page"] {
+      background: linear-gradient(135deg, #bc8cff 0%, #58a6ff 100%);
+      color: #ffffff;
+      font-weight: 700;
+      box-shadow: 0 0 16px rgba(188, 140, 255, 0.6);
+      border-color: transparent;
+    }
+    #graph-container {
+      flex: 1;
+      position: relative;
+    }
+    canvas { width: 100%; height: 100%; display: block; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🕸️ Mapa de Dependências & Módulos 2D</h1>
+    <nav class="reversa-doc-nav">
+      <!-- NAV_LINKS -->
+      <a href="index.html">Visão geral</a>
+      <a href="arquitetura.html">Arquitetura 3D</a>
+      <a href="modulos.html" aria-current="page">Módulos 2D</a>
+      <a href="metricas.html">Métricas</a>
+      <a href="glossario.html">Glossário</a>
+      <a href="deck.html" class="nav-deck-btn">🎬 Apresentação</a>
+    </nav>
+  </header>
+
+  <div id="graph-container">
+    <canvas id="graphCanvas"></canvas>
+  </div>
+
+  <script src="assets/js/data.js"></script>
+  <script>
+    const canvas = document.getElementById('graphCanvas');
+    const ctx = canvas.getContext('2d');
+
+    function resize() {
+      canvas.width = canvas.parentElement.clientWidth;
+      canvas.height = canvas.parentElement.clientHeight;
+      draw();
+    }
+    window.addEventListener('resize', resize);
+
+    const nodes = [
+      { id: "cli", label: "Typer CLI", x: 150, y: 180, color: "#d29922" },
+      { id: "pipeline", label: "RAG Pipeline", x: 350, y: 180, color: "#58a6ff" },
+      { id: "ingestion", label: "Ingestão PDF", x: 550, y: 100, color: "#58a6ff" },
+      { id: "embeddings", label: "Embeddings", x: 550, y: 260, color: "#bc8cff" },
+      { id: "vector_store", label: "SQLite-vec Store", x: 750, y: 120, color: "#3fb950" },
+      { id: "synthesis", label: "LLM Synthesis", x: 750, y: 260, color: "#bc8cff" },
+      { id: "domain", label: "Modelos Domínio", x: 450, y: 380, color: "#8b949e" },
+      { id: "config", label: "Configuração", x: 250, y: 380, color: "#8b949e" }
+    ];
+
+    const edges = [
+      { from: "cli", to: "pipeline" },
+      { from: "pipeline", to: "ingestion" },
+      { from: "pipeline", to: "embeddings" },
+      { from: "pipeline", to: "vector_store" },
+      { from: "pipeline", to: "synthesis" },
+      { from: "ingestion", to: "domain" },
+      { from: "embeddings", to: "config" },
+      { from: "vector_store", to: "domain" },
+      { from: "synthesis", to: "domain" }
+    ];
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw edges
+      ctx.strokeStyle = "#30363d";
+      ctx.lineWidth = 2;
+      edges.forEach(e => {
+        const n1 = nodes.find(n => n.id === e.from);
+        const n2 = nodes.find(n => n.id === e.to);
+        if (n1 && n2) {
+          ctx.beginPath();
+          ctx.moveTo(n1.x, n1.y);
+          ctx.lineTo(n2.x, n2.y);
+          ctx.stroke();
+        }
+      });
+
+      // Draw nodes
+      nodes.forEach(n => {
+        ctx.fillStyle = n.color;
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, 24, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.fillStyle = "#f0f6fc";
+        ctx.font = "bold 13px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(n.label, n.x, n.y + 40);
+      });
+    }
+
+    setTimeout(resize, 50);
+  </script>
+</body>
+</html>

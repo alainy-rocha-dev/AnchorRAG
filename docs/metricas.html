@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Métricas do Sistema — AnchorRAG Docs</title>
+  <meta name="reversa-category" content="diagram">
+  <meta name="reversa-producer-agent" content="reversa-docs-analyst">
+  <meta name="reversa-template" content="metricas">
+  <style>
+    :root {
+      --bg: #0d1117;
+      --card-bg: #161b22;
+      --border: #30363d;
+      --text: #c9d1d9;
+      --text-heading: #f0f6fc;
+      --accent: #58a6ff;
+      --accent-green: #3fb950;
+    }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 0;
+    }
+    header {
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.25rem;
+      color: var(--text-heading);
+    }
+    header nav.reversa-doc-nav {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    header nav a {
+      color: var(--text);
+      text-decoration: none;
+      font-size: 0.85rem;
+      padding: 6px 12px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      line-height: 1;
+      height: 34px;
+      box-sizing: border-box;
+      transition: all 0.2s ease;
+    }
+    header nav a:hover, header nav a[aria-current="page"] {
+      background: rgba(88, 166, 255, 0.15);
+      color: var(--accent);
+    }
+    header nav a.nav-deck-btn {
+      background: linear-gradient(135deg, rgba(168, 85, 247, 0.25) 0%, rgba(88, 166, 255, 0.25) 100%);
+      border: 1px solid rgba(168, 85, 247, 0.5);
+      color: #d8b4fe;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 20px;
+      transition: all 0.25s ease;
+      box-shadow: 0 0 10px rgba(168, 85, 247, 0.2);
+      display: inline-flex;
+      align-items: center;
+      line-height: 1;
+      height: 34px;
+      box-sizing: border-box;
+    }
+    header nav a.nav-deck-btn:hover, header nav a.nav-deck-btn[aria-current="page"] {
+      background: linear-gradient(135deg, #bc8cff 0%, #58a6ff 100%);
+      color: #ffffff;
+      font-weight: 700;
+      box-shadow: 0 0 16px rgba(188, 140, 255, 0.6);
+      border-color: transparent;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 24px auto;
+      padding: 0 24px;
+    }
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .metric-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+    }
+    .metric-card .value {
+      font-size: 2.2rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 4px;
+    }
+    .metric-card .label {
+      font-size: 0.85rem;
+      color: #8b949e;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .chart-section {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    .chart-section h3 {
+      margin-top: 0;
+      color: var(--text-heading);
+    }
+    .bar-container {
+      margin-bottom: 12px;
+    }
+    .bar-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      margin-bottom: 4px;
+    }
+    .bar-bg {
+      background: #21262d;
+      border-radius: 4px;
+      height: 12px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      background: var(--accent);
+      height: 100%;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>📊 Métricas e avaliação</h1>
+    <nav class="reversa-doc-nav">
+      <!-- NAV_LINKS -->
+      <a href="index.html">Visão geral</a>
+      <a href="arquitetura.html">Arquitetura 3D</a>
+      <a href="modulos.html">Módulos 2D</a>
+      <a href="metricas.html" aria-current="page">Métricas</a>
+      <a href="glossario.html">Glossário</a>
+      <a href="deck.html" class="nav-deck-btn">🎬 Apresentação</a>
+    </nav>
+  </header>
+
+  <div class="container">
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="value">140</div>
+        <div class="label">Perguntas revisadas à mão</div>
+      </div>
+      <div class="metric-card">
+        <div class="value">12 / 663</div>
+        <div class="label">Normas BCB/CMN / trechos</div>
+      </div>
+      <div class="metric-card">
+        <div class="value">3</div>
+        <div class="label">Execuções completas da baseline</div>
+      </div>
+      <div class="metric-card">
+        <div class="value">≈ 5 s</div>
+        <div class="label">Latência p50 (p95 ≈ 10 s, local)</div>
+      </div>
+    </div>
+
+    <div class="chart-section">
+      <h3>🎯 Baseline congelada (variante A)</h3>
+      <p style="font-size: 0.85rem; color: #8b949e; margin: 0 0 16px;">Busca híbrida (BM25 + bge-m3, RRF, k=5) e síntese com qwen2.5:7b, tudo local. Média de 3 execuções; intervalo de confiança de 95% por bootstrap. Detalhes no <a href="https://github.com/alainy-rocha-dev/AnchorRAG#results-frozen-baseline-variant-a" style="color: var(--accent);">README</a>.</p>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; text-align: center;">
+        <div style="background: #21262d; padding: 16px; border-radius: 6px;">
+          <div style="font-size: 1.5rem; font-weight: bold; color: var(--accent-green);">0.91</div>
+          <div style="font-size: 0.8rem; color: #8b949e;">hit@5 (recuperação)</div>
+          <div style="font-size: 0.72rem; color: #6e7681; margin-top: 4px;">n = 113 · IC 0.86–0.96</div>
+        </div>
+        <div style="background: #21262d; padding: 16px; border-radius: 6px;">
+          <div style="font-size: 1.5rem; font-weight: bold; color: var(--accent-green);">0.94</div>
+          <div style="font-size: 0.8rem; color: #8b949e;">Recusa correta fora do corpus</div>
+          <div style="font-size: 0.72rem; color: #6e7681; margin-top: 4px;">n = 23 · IC 0.84–1.00</div>
+        </div>
+        <div style="background: #21262d; padding: 16px; border-radius: 6px;">
+          <div style="font-size: 1.5rem; font-weight: bold; color: var(--accent-green);">0.85</div>
+          <div style="font-size: 0.8rem; color: #8b949e;">Respostas com citação</div>
+          <div style="font-size: 0.72rem; color: #6e7681; margin-top: 4px;">n = 104 · IC 0.79–0.90</div>
+        </div>
+        <div style="background: #21262d; padding: 16px; border-radius: 6px;">
+          <div style="font-size: 1.5rem; font-weight: bold; color: var(--accent-green);">0 / 9</div>
+          <div style="font-size: 0.8rem; color: #8b949e;">Canário de injeção vazado</div>
+          <div style="font-size: 0.72rem; color: #6e7681; margin-top: 4px;">prompt injection</div>
+        </div>
+      </div>
+      <p style="font-size: 0.8rem; color: #d29922; margin: 16px 0 0;">Fidelidade (alucinação) ainda não medida: os juízes LLM locais testados não concordaram o suficiente com rótulos humanos (κ 0.16 e 0.29) e por isso não entram nos resultados.</p>
+    </div>
+
+    <div class="chart-section">
+      <h3>📈 Código por pacote</h3>
+      <div class="bar-container">
+        <div class="bar-label"><span>evaluation (avaliação, juiz, custo)</span><span>2.291 linhas</span></div>
+        <div class="bar-bg"><div class="bar-fill" style="width: 100%; background: #bc8cff;"></div></div>
+      </div>
+      <div class="bar-container">
+        <div class="bar-label"><span>pipeline (orquestração)</span><span>1.052 linhas</span></div>
+        <div class="bar-bg"><div class="bar-fill" style="width: 46%; background: #58a6ff;"></div></div>
+      </div>
+      <div class="bar-container">
+        <div class="bar-label"><span>ingestion (parser e chunker)</span><span>923 linhas</span></div>
+        <div class="bar-bg"><div class="bar-fill" style="width: 40%; background: #3fb950;"></div></div>
+      </div>
+      <div class="bar-container">
+        <div class="bar-label"><span>vector_store (SQLite-vec + FTS5)</span><span>853 linhas</span></div>
+        <div class="bar-bg"><div class="bar-fill" style="width: 37%; background: #d29922;"></div></div>
+      </div>
+      <div class="bar-container">
+        <div class="bar-label"><span>synthesis (prompt, LLMs, filtro de saída)</span><span>755 linhas</span></div>
+        <div class="bar-bg"><div class="bar-fill" style="width: 33%; background: #bc8cff;"></div></div>
+      </div>
+      <div class="bar-container">
+        <div class="bar-label"><span>retrieval (BM25, híbrida, RRF)</span><span>749 linhas</span></div>
+        <div class="bar-bg"><div class="bar-fill" style="width: 33%; background: #58a6ff;"></div></div>
+      </div>
+    </div>
+
+    <div class="chart-section">
+      <h3>🔍 Arquitetura de Recuperação</h3>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; text-align: center;">
+        <div style="background: #21262d; padding: 16px; border-radius: 6px;">
+          <div style="font-size: 1.2rem; color: #bc8cff;">🔍</div>
+          <div style="font-size: 0.8rem; color: #8b949e;">Busca Híbrida (BM25 + Vetorial)</div>
+        </div>
+        <div style="background: #21262d; padding: 16px; border-radius: 6px;">
+          <div style="font-size: 1.2rem; color: #58a6ff;">🔗</div>
+          <div style="font-size: 0.8rem; color: #8b949e;">Filtro de saída contra vazamento</div>
+        </div>
+        <div style="background: #21262d; padding: 16px; border-radius: 6px;">
+          <div style="font-size: 1.2rem; color: #3fb950;">📚</div>
+          <div style="font-size: 0.8rem; color: #8b949e;">Corpus BCB/CMN</div>
+        </div>
+        <div style="background: #21262d; padding: 16px; border-radius: 6px;">
+          <div style="font-size: 1.2rem; color: #bc8cff;">⚖️</div>
+          <div style="font-size: 0.8rem; color: #8b949e;">Juiz LLM (em validação)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/js/data.js"></script>
+</body>
+</html>
