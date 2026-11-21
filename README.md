@@ -57,7 +57,7 @@ Answer faithfulness was judged claim by claim by local LLM judges and **checked 
 Neither local judge was reliable enough (gemma2 barely beats a judge that approves everything), so **judge-based faithfulness is not used** to compare variants. Comparisons rely only on model-independent signals: retrieval, refusal, citations, canary and output filter.
 
 
-### Next: variant C — deterministic citation verifier
+### Variant C — deterministic citation verifier
 
 The verifier checks each answer against the passages the model received, without an LLM, and sends it back to the writer (at most 2 rewrites) when it finds:
 
@@ -70,7 +70,21 @@ The verifier checks each answer against the passages the model received, without
 
 Without a valid citation after the rewrites, the answer becomes the standard refusal. It does not judge whether a passage *supports the meaning* of a sentence — that is the semantic layer, still blocked on judge validation.
 
-The same check is reported for every variant as **valid citation rate**. Applied to the saved baseline answers: **0.84** of variant A's answers pass (95% CI 0.77–0.89, n = 103). Typical failures are answers without any citation and articles cited from the wrong passage. The router planned for variant B is not built yet, so this C is A + verifier. Variant C will be measured on the same 140 items, with 3 runs and the paired bootstrap (`scripts/compare_variants.py`).
+The same check is reported for every variant as **valid citation rate**. Applied to the saved baseline answers: **0.84** of variant A's answers pass (95% CI 0.77–0.89, n = 103). Typical failures are answers without any citation and articles cited from the wrong passage. The router planned for variant B is not built yet, so this C is A + verifier.
+
+**Result (3 runs each, same 140 items, paired bootstrap 95% CI)** — `qwen2.5:7b` as writer, up to 2 rewrites:
+
+| Metric (questions that should be answered, n = 104) | A | C | C − A |
+|---|---|---|---|
+| Valid citation, among delivered answers | 0.84 | 1.00 | +0.11 [+0.07, +0.17] |
+| Wrongful refusal | 0.01 | 0.15 | **+0.14 [+0.09, +0.20]** |
+| **Delivered and well cited** (refusal counts as failure) | 0.83 | 0.85 | +0.02 [−0.02, +0.06] |
+| Latency per answer (s) | 5.7 | 6.4 | +0.7 [+0.1, +1.2] |
+| Input tokens per answer | 2,005 | 2,628 | +623 |
+
+Retrieval, correct refusal (0.95) and the injection canary (0 leaks) did not change.
+
+**Reading:** the verifier works as a filter — no answer with an invalid citation reaches the user — but the repair loop rarely repairs. Of 312 answers, 23 were "fixed" after feedback, and 15 of those were the model giving up with the refusal; only 8 became valid answers. Most rejected drafts had no citation at all. So the net gain in answers that are both delivered and well cited is not significant, and the price is 14 points of wrongful refusals. Next step: a repair message per problem type (e.g. "keep the content, add the `[N]` of the passage you used" for missing citations) instead of one generic message that offers the refusal as a way out.
 
 ---
 
