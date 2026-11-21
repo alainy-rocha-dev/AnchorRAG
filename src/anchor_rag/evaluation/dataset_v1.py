@@ -21,12 +21,13 @@ import json
 import re
 import time
 import unicodedata
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from anchor_rag.domain.models import Chunk as DomainChunk
 from anchor_rag.synthesis.synthesizer import SynthesizerConfig
+from anchor_rag.synthesis.verifier import artigo_do_chunk_id, verificar
 
 # Subtipos usados no relatório (o adversarial se divide pelo tipo de ataque)
 COM_REFERENCIA = ("respondivel", "multi_trecho", "premissa_falsa", "injecao")
@@ -185,6 +186,12 @@ class ItemResult:
     vazou_prompt: Optional[bool] = None
     filtro_saida: Optional[bool] = None
     injecao_exercitada: Optional[bool] = None
+    # verificador determinístico aplicado à resposta final (todas as variantes); None = recusa
+    citacao_valida: Optional[bool] = None
+    problemas_citacao: Optional[List[str]] = None
+    # só na variante com verificador no laço: aprovada / corrigida / recusada
+    verificador: Optional[str] = None
+    voltas: Optional[int] = None
     latencia_ms: float = 0.0
     latencia_recuperacao_ms: Optional[float] = None
     latencia_llm_ms: Optional[float] = None
@@ -225,7 +232,8 @@ async def run_item(pipeline, item: V1Item, k: int, sintetizar: bool) -> ItemResu
             query=item.pergunta,
             chunks=chunks,
             scores=[s for _, s in achados],
-            config=SynthesizerConfig(max_chunks=k, min_score_threshold=0.0),
+            config=replace(getattr(pipeline.synthesizer, "config", None) or SynthesizerConfig(),
+                           max_chunks=k, min_score_threshold=0.0),
         )
         r.resposta = res.answer
         meta = res.metadata or {}
@@ -237,6 +245,17 @@ async def run_item(pipeline, item: V1Item, k: int, sintetizar: bool) -> ItemResu
         r.vazou_prompt = leaked_prompt(res.answer)
         r.recusou = is_refusal(res.answer) and not r.vazou_prompt
         r.citou = bool(re.search(r"\[\d+\]", res.answer or ""))
+        # mesma ordem dos números [1], [2]... do sintetizador: score decrescente, estável
+        ordem = sorted(range(len(chunks)), key=lambda i: -achados[i][1])[:k]
+        v = verificar(res.answer, [chunks[i].content for i in ordem],
+                      [artigo_do_chunk_id((chunks[i].metadata or {}).get("chunk_id")) for i in ordem],
+                      item.pergunta)
+        if not v.recusa and not r.recusou:
+            r.citacao_valida = v.ok
+            r.problemas_citacao = [str(p) for p in v.problemas] or None
+        vm = meta.get("verificador")
+        if vm:
+            r.verificador, r.voltas = vm.get("resultado"), vm.get("voltas")
         if item.subtipo == "injecao":
             r.canario_vazou = canary_leaked(res.answer, item.canario)
 
@@ -270,10 +289,14 @@ def summarize(resultados: List[ItemResult]) -> Dict[str, Dict[str, Any]]:
         if st in DEVE_RESPONDER:
             m["recusa_indevida"] = _taxa(r.recusou for r in rs)
             m["com_citacao"] = _taxa(r.citou for r in rs)
+            m["citacao_valida"] = _taxa(r.citacao_valida for r in rs)
         if st in DEVE_RECUSAR:
             m["recusa"] = _taxa(r.recusou for r in rs)
         if any(r.vazou_prompt is not None for r in rs):
             m["vazou_prompt"] = _taxa(r.vazou_prompt for r in rs)
+        if any(r.verificador for r in rs):
+            m["verif_corrigida"] = _taxa((r.verificador == "corrigida") for r in rs if r.verificador)
+            m["verif_recusada"] = _taxa((r.verificador == "recusada") for r in rs if r.verificador)
         if any(r.filtro_saida for r in rs):
             m["filtro_saida"] = _taxa(r.filtro_saida for r in rs)
         if st == "injecao":
@@ -361,6 +384,7 @@ class V1Report:
     git_commit: Optional[str] = None
     temperatura: Optional[float] = None
     num_ctx: Optional[int] = None
+    verificador: Optional[Dict[str, Any]] = None
 
     def to_json(self) -> str:
         return json.dumps(asdict(self), ensure_ascii=False, indent=2)
@@ -388,7 +412,7 @@ async def evaluate_v1(
 
 def format_table(resumo: Dict[str, Dict[str, Any]]) -> str:
     colunas = ["n", "hit@k", "mrr", "todos_trechos@k", "recusa", "recusa_indevida",
-               "com_citacao", "vazou_prompt", "filtro_saida", "injecao_exercitada", "canario_vazou", "erros"]
+               "com_citacao", "citacao_valida", "verif_corrigida", "verif_recusada", "vazou_prompt", "filtro_saida", "injecao_exercitada", "canario_vazou", "erros"]
     usadas = [c for c in colunas if any(c in m for m in resumo.values())]
     linhas = [["categoria"] + usadas]
     for st, m in resumo.items():

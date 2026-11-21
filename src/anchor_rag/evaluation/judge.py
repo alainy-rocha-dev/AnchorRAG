@@ -386,6 +386,26 @@ def cohen_kappa(a: List[str], b: List[str]) -> Optional[float]:
     return round((po - pe) / (1 - pe), 3)
 
 
+def kappa_ic95(a: List[str], b: List[str], n_boot: int = 10_000, seed: int = 0):
+    """IC 95% do kappa por bootstrap sobre os pares (None se indefinido)."""
+    import random
+
+    if len(a) < 2 or len(a) != len(b):
+        return None
+    rnd = random.Random(seed)
+    idx = list(range(len(a)))
+    ks = []
+    for _ in range(n_boot):
+        amostra = rnd.choices(idx, k=len(idx))
+        k = cohen_kappa([a[i] for i in amostra], [b[i] for i in amostra])
+        if k is not None:
+            ks.append(k)
+    if len(ks) < n_boot * 0.9:  # muitas reamostragens com uma classe só: IC sem sentido
+        return None
+    ks.sort()
+    return round(ks[int(0.025 * len(ks))], 2), round(ks[int(0.975 * len(ks)) - 1], 2)
+
+
 def concordancia(pares: List[dict]) -> Dict[str, Dict[str, object]]:
     """pares: [{'dimensao', 'juiz', 'humano'}] -> por dimensão: n, % de acordo e kappa."""
     out = {}
@@ -399,6 +419,7 @@ def concordancia(pares: List[dict]) -> Dict[str, Dict[str, object]]:
             "n": len(ps),
             "acordo": round(sum(1 for x, y in zip(j, h) if x == y) / len(ps), 2),
             "kappa": cohen_kappa(j, h),
+            "kappa_ic95": kappa_ic95(j, h),
         }
     return out
 

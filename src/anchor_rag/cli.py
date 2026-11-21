@@ -145,6 +145,8 @@ def eval_v1(
     out: Path = typer.Option(Path("eval/results"), "--out", help="Pasta do relatório JSON"),
     variante: Optional[str] = typer.Option(None, "--variante", help="Rótulo da variante na ablação (ex.: A)"),
     num_ctx: int = typer.Option(8192, "--num-ctx", help="Ollama: janela de contexto do LLM (evita cortar o prompt)"),
+    verificador: bool = typer.Option(False, "--verificador", help="Variante C: verificador de citações com reparo"),
+    voltas_max: int = typer.Option(2, "--voltas-max", help="Reescritas permitidas pelo verificador antes de recusar"),
     config: Optional[Path] = typer.Option(None, "--config", "-c", help="Arquivo de configuração"),
 ):
     """Avalia o pipeline com o dataset v1: métricas por categoria e relatório JSON."""
@@ -160,7 +162,7 @@ def eval_v1(
     from anchor_rag.retrieval.hybrid import HybridRetriever
     from types import SimpleNamespace
     from anchor_rag.synthesis import create_llm_provider
-    from anchor_rag.synthesis.synthesizer import RAGSynthesizer
+    from anchor_rag.synthesis.synthesizer import RAGSynthesizer, SynthesizerConfig
     from anchor_rag.vector_store.sqlite_vec import SQLiteVecStore
 
     cfg = AppConfig.from_yaml(config).resolve_api_keys() if config else AppConfig()
@@ -218,7 +220,10 @@ def eval_v1(
                 embedder=embedder,
                 vector_store=store,
                 retrieve=recuperar,
-                synthesizer=None if no_synthesis else RAGSynthesizer(create_llm_provider(cfg.llm)),
+                synthesizer=None if no_synthesis else RAGSynthesizer(
+                    create_llm_provider(cfg.llm),
+                    SynthesizerConfig(verificador=verificador, voltas_max=voltas_max),
+                ),
             )
 
             def progresso(n, total, r):
@@ -262,6 +267,7 @@ def eval_v1(
         git_commit=_git_commit(),
         temperatura=None if no_synthesis else cfg.llm.temperature,
         num_ctx=None if no_synthesis else cfg.llm.num_ctx,
+        verificador={"voltas_max": voltas_max} if (verificador and not no_synthesis) else None,
     )
     out.mkdir(parents=True, exist_ok=True)
     sufixo = (f"_{variante}" if variante else "") + f"_{retrieval}" + ("_retrieval" if no_synthesis else "")
@@ -714,7 +720,9 @@ def judge_claims_compare(
     typer.echo("")
     for nome, c, campo in ((rel["juiz"]["modelo"], antigo, "juiz"), (modelo, novo, "juiz_novo")):
         m = c.get("afirmacao", {})
-        typer.echo(f"{nome:<28} n={m.get('n')}  acordo={m.get('acordo')}  kappa={m.get('kappa')}")
+        ic = m.get("kappa_ic95")
+        ic_txt = f" (IC 95% {ic[0]} a {ic[1]})" if ic else ""
+        typer.echo(f"{nome:<28} n={m.get('n')}  acordo={m.get('acordo')}  kappa={m.get('kappa')}{ic_txt}")
         for j in ("apoiada", "nao_apoiada"):
             a = sum(1 for s in saida if s[campo] == j and s["humano"] == "apoiada")
             b = sum(1 for s in saida if s[campo] == j and s["humano"] == "nao_apoiada")
